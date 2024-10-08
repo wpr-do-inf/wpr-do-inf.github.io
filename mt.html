@@ -1,0 +1,452 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <title>Turing Machine Simulator</title>
+
+  <link rel="shortcut icon" type="image/png" href="lib/jasmine-1.2.0/jasmine_favicon.png">
+  <link rel="stylesheet" type="text/css" href="lib/jasmine-1.2.0/jasmine.css">
+  <link rel="stylesheet" type="text/css" href="media/css/main.css">
+  <script type="text/javascript" src="lib/jquery-1.8.2.min.js"></script>
+  <script type="text/javascript" src="lib/jquery-ui-1.9.2.custom.min.js"></script>
+  <script type="text/javascript" src="lib/viz.js"></script>
+  <script type="text/javascript" src="lib/jquery.svg.js"></script>
+
+  <link rel="stylesheet" href="media/css/jquery-ui-1.9.2.custom.css" />
+  
+  <!--script src="http://code.jquery.com/ui/1.9.1/jquery-ui.js"></script-->
+
+  <script type="text/javascript" src="media/js/jsutils.js"></script>
+  <script type="text/javascript" src="media/js/simple-inheritance.js"></script>
+  <script type="text/javascript" src="media/js/sig.js"></script>
+  <script type="text/javascript" src="media/js/TuringMachine.js"></script>
+  <script type="text/javascript" src="media/js/TMTape.js"></script>
+  <script type="text/javascript" src="media/js/TMTapeViewModel.js"></script>
+  <script type="text/javascript" src="media/js/TMTapeTableView.js"></script>
+  <script type="text/javascript" src="media/js/Array2d.js"></script>
+  <script type="text/javascript" src="media/js/TMProgramTableViewModel.js"></script>
+  <script type="text/javascript" src="media/js/TMProgramTableView.js"></script>
+  <script type="text/javascript" src="media/js/TMSimulator.js"></script>
+  <script type="text/javascript" src="media/js/fileio-utils.js"></script>
+  <script type="text/javascript" src="media/js/TMGraph.js"></script>
+
+    <style>
+        input.text { width:95%; padding: 0px;}
+        fieldset { padding:0; border: 0; margin: 0px; }
+        h1 { font-size: 1.2em; margin: .6em 0; }
+        .ui-dialog .ui-state-error { padding: .3em; }
+        .validateTips { border: 1px solid transparent; padding: 0.3em; }
+        .ui-widget { font-size: 83%; }
+    </style>
+</head>
+
+<body>
+
+<h1>Symulator Maszyny Turinga</h1>
+
+<button id="btn_add_state" class="nice_button">Dodaj stan</button>
+<button id="btn_edit_initial_tape" class="nice_button">Edytuj dane wejściowe</button>
+<button id="btn_edit_alphabet" class="nice_button">Edytuj alfabet</button>
+<button id="btn_new_machine" class="nice_button">Nowa maszyna</button>
+
+<h3>Graf programu</h3>
+<div id="graph_box" style="display: none;">
+<div id="svg_wrapper"></div>
+<button id="start" class="nice_button">Rysuj graf</button>
+</div>
+<button id="btn_show_hide_graph">Pokaż/ukryj</button>
+
+<h3>Tabela stanów</h3>
+<div id="program_table_wrapper"></div>
+
+<div id="tape_wrapper"></div>
+
+<div style="clear: both;"></div>
+
+<button id="btn_next"class="nice_button">Kolejny krok</button>
+<button id="btn_reset"class="nice_button">Reset</button>
+
+<div style="clear: both;"></div>
+
+<div id="source_io_panel">
+<h3>Zachowanie programu dla MT</h3>
+<p>
+Ze względu na bezstanowy charakter aplikacji, po opuszczeniu strony utracony
+zostanie aktualny program dla Maszyny Turinga. Kod programu można jednak pobrać
+w postaci pliku tekstowego, który można później załadować.
+</p>
+<div>
+    <button id="btn_download_program">Pobierz kod programu</button>
+    <a id="source_download">Pobierz kod</a>
+</div>
+
+<h3>Import programu z pliku tekstowego</h3>
+<p>
+Uprzednio zapisany kod programu można załadować korzystając z poniższego
+formularza.
+</p>
+<div>
+    <label for="source_input_file">Wczytaj kod programu: </label><input type="file" id="source_input_file" name="source_input_file" />
+</div>
+
+    <div id="source_code_box" style="display: none;">
+        <form>
+        <textarea id="source_code" cols="80" rows="10"></textarea>
+        </form>
+    </div>
+</div>
+
+
+<div id="edit-transition-dialog" class="form-dialog" style="display: none;" title="Edytuj przejście">
+    <form>
+    <fieldset>
+        <label for="next_state">Następny stan</label>
+        <input type="text" name="next_state" id="next_state" class="text ui-widget-content ui-corner-all" />
+        <label for="new_symbol">Nowy symbol</label>
+        <input type="text" name="new_symbol" id="new_symbol" value="" class="text ui-widget-content ui-corner-all" />
+        <label for="head_move">Ruch głowicy</label>
+        <input type="text" name="head_move" id="head_move" value="" class="text ui-widget-content ui-corner-all" />
+    </fieldset>
+    </form>
+</div>
+
+<div id="edit-initial-tape-dialog" class="form-dialog" style="display: none;" title="Edytuj dane wej. na taśmie">
+    <form>
+    <fieldset>
+        <label for="initial_tape_input">Słowo wejściowe</label>
+        <input type="text" name="initial_tape_inpute" id="initial_tape_input" class="text ui-widget-content ui-corner-all" />
+    </fieldset>
+    </form>
+</div>
+
+<div id="edit-alphabet-dialog" class="form-dialog" style="display: none;" title="Edytuj alfabet">
+    <form>
+    <fieldset>
+        <label for="alphabet_input">Lista symboli</label>
+        <input type="text" name="alphabet_input" id="alphabet_input" class="text ui-widget-content ui-corner-all" />
+        <p style="font-size: 80%; font-style: italic;">Symbole oddziel znakiem spacji</p>
+    </fieldset>
+    </form>
+</div>
+
+<div id="add-state-dialog" class="form-dialog" style="display: none;" title="Dodaj stan">
+    <form>
+    <fieldset>
+        <label for="new_state_id">Identyfikator</label>
+        <input type="text" name="new_state_id" id="new_state_id" class="text ui-widget-content ui-corner-all" />
+
+        <label for="new_state_description">Dodatkowy opis</label>
+        <input type="text" name="state_id" id="new_state_description" class="text ui-widget-content ui-corner-all" />
+        <p style="font-size: 80%; font-style: italic;">Opis jest opcjonalny</p>
+    </fieldset>
+    </form>
+</div>
+
+
+ 
+<script type="text/javascript">
+  (function() {
+
+      function createGraph() {
+          tm_graph = new TMGraph(tm, '#svg_wrapper');
+          tm_graph.create();
+          tm_graph.highlightState('q0');
+      }
+
+
+      $( "#edit-transition-dialog" ).dialog({
+              autoOpen: false,
+              width: 200,
+              modal: true,
+              resizable: false,
+              successCallback: null,
+            open: function (event, ui) {
+                $('#edit-transition-dialog').css('overflow', 'hidden');
+              },
+              buttons: {
+                  "OK": function() {
+                      var bValid = true;
+   
+                      if ( bValid ) {
+                          console.log('Dialog ok');
+                          var callback = $(this).data('ui-dialog').successCallback;
+                          if (callback) {
+                              callback( $('#next_state').val(), $('#new_symbol').val(), $('#head_move').val() );
+                          }
+                          $( this ).dialog( "close" );
+                      }
+                  },
+                  Cancel: function() {
+                      $( this ).dialog( "close" );
+                  }
+              },
+              close: function() {
+              }
+          });
+
+          $( "#edit-initial-tape-dialog" ).dialog({
+                  autoOpen: false,
+                  width: 250,
+                  modal: true,
+                  resizable: false,
+                  open: function (event, ui) {
+                      var input =
+                          $('#initial_tape_input').val(sim.getTapeInitialState());
+                    },
+                  buttons: {
+                      "OK": function() {
+                          var bValid = true;
+       
+                          var input = $('#initial_tape_input').val();
+                          var error_msg = null;
+
+                          for (var i = 0; i < input.length; ++i) {
+                              if ( ! tm.isValidSymbol(input[i]) ) {
+                                  bValid = false;
+                                  error_msg = 'Ciąg zawiera nieznany symbol: ' + input[i];
+                                  break ;
+                              }
+                          }
+                          if ( bValid ) {
+                              sim.initTape(input);
+                              $( this ).dialog( "close" );
+                          } else {
+                              alert(error_msg);
+                          }
+                      },
+                      Cancel: function() {
+                          $( this ).dialog( "close" );
+                      }
+                  },
+                  close: function() {
+                  }
+              });
+
+              $( "#edit-alphabet-dialog" ).dialog({
+                      autoOpen: false,
+                      width: 250,
+                      modal: true,
+                      resizable: false,
+                      open: function (event, ui) {
+                          $('#alphabet_input').val(tm.getAlphabet().slice(1).join(' '));
+                        },
+                      buttons: {
+                          "OK": function() {
+                              var bValid = true;
+           
+                              var input = $('#alphabet_input').val();
+                              var tokens = input.split(/\s+/g);
+                              var error_msg = null;
+
+                              for (var i = 0; i < tokens.length; ++i) {
+                                  var token = tokens[i];
+                                  if (token.length > 1) {
+                                      bValid = false;
+                                      error_msg = 'Nieprawidłowy symbol: ' + token;
+                                      break ;
+                                  }
+                              }
+                              if ( bValid ) {
+                                  tm.updateAlphabet(tokens);
+                                  $( this ).dialog( "close" );
+                              } else {
+                                  alert(error_msg);
+                              }
+                          },
+                          Cancel: function() {
+                              $( this ).dialog( "close" );
+                          }
+                      },
+                      close: function() {
+                      }
+                  });
+
+                  $( "#add-state-dialog" ).dialog({
+                          autoOpen: false,
+                          width: 250,
+                          modal: true,
+                          resizable: false,
+                          open: function (event, ui) {
+                              $('#new_state_id').val(tm.getNextStateId());
+                          },
+                          buttons: {
+                              "OK": function() {
+                                  var bValid = true;
+               
+                                  var state_id = $('#new_state_id').val();
+                                  state_id = state_id.trim();
+                                  var description = $('#new_state_description').val();
+                                  if (description.length > 20) {
+                                      description = description.substr(0, 20);
+                                  }
+                                  var error_msg = null;
+
+                                  if (state_id.length == 0) {
+                                      bValid = false;
+                                      error_msg = 'Nieprawidłowy identyfikator stanu: ' + state_id;
+                                  } else if (tm.getStateById(state_id) !== null) {
+                                      bValid = false;
+                                      error_msg = 'Stan o podanym identyfikatorze istnieje: ' + state_id;
+                                  }
+
+                                  if ( bValid ) {
+                                      tm.addState(state_id, description);
+                                      $( this ).dialog( "close" );
+                                  } else {
+                                      alert(error_msg);
+                                  }
+                              },
+                              Cancel: function() {
+                                  $( this ).dialog( "close" );
+                              }
+                          },
+                          close: function() {
+                          }
+                      });
+
+                      function initNewMachine() {
+                          tm.newMachine();
+                          sim.initTape('');
+                      }
+
+    window.showTransitionEditDialog = function (fields, callback) {
+        if (fields.length >= 1) {
+            $('#next_state').val(fields[0]);
+        }
+        if (fields.length >= 2) {
+            $('#new_symbol').val(fields[1]);
+        }
+        if (fields.length >= 3) {
+            $('#head_move').val(fields[2]);
+        }
+
+        $('.ui-dialog .ui-dialog-content').css('overflow', 'none !important');
+        $( "#next_state" ).autocomplete( { source : tm.getStatesIds(), minLength: 0});
+        $( "#edit-transition-dialog" ).data('ui-dialog').successCallback = callback; 
+        $( "#edit-transition-dialog" ).dialog( "open" );
+    }
+
+    function showInitialTapeEditDialog() {
+        $( "#edit-initial-tape-dialog" ).dialog( "open" );
+    }
+
+    function showEditAlphabetDialog() {
+        $( "#edit-alphabet-dialog" ).dialog( "open" );
+    }
+
+    function showAddStateDialog() {
+        $( "#add-state-dialog" ).dialog( "open" );
+    }
+
+    var sim = null;
+    var tm = null;
+    var n = 30;
+    var tm_graph = null;
+
+    function initMachine() {
+        console.log('hello:)');
+
+        tm = new TuringMachine();
+        tm.addStates(['q0', 'q1']);
+        tm.addSymbols(['0', '1']);
+        tm.addTransitionFromString('q0 0 1 q0 P');
+        tm.addTransitionFromString('q0 1 0 q0 P');
+        tm.addTransitionFromString('q0 @ @ q1 P');
+        tm.addTransitionFromString('q1 @ @ q1 -');
+
+        sim = new TMSimulator(tm);
+        sim.addTransitionObservers( {
+            'onTransitionInit':  function () {
+            },
+            'onTransitionChange' : function(curr, next) {
+                if (tm_graph != null) {
+                    tm_graph.highlightState(next.from_.getId());
+                }
+            },
+            'onSymbolReadWrite' : function (trans, curr_symbol, next_symbol) {
+            }
+        });
+        sim.addObserver( {
+            'onHeadSymbolReadWrite' : function(curr_symbol, next_symbol, trans) {
+                if (tm_graph != null) {
+                    tm_graph.highlightTransition(trans, curr_symbol, next_symbol);
+                } 
+            },
+            'onHeadMove' : function () {}
+        });
+        
+        var view = new TMTapeTableView('#tape_wrapper');
+        var view_model = new TMTapeViewModel(sim, view);
+
+        view_model.setCellCount(n);
+
+        var program_table_view = new TMProgramTableView('#program_table_wrapper');
+        var program_table_model = new TMProgramTableViewModel(sim,
+        program_table_view);
+
+        sim.initTape('10100');
+
+        $('#btn_next').click(function () {
+            sim.makeStep();
+        });
+
+        $('#btn_reset').click(function () {
+            sim.initTape(sim.getTapeInitialState());
+        });
+
+        $('#btn_add_state').click(showAddStateDialog);
+
+        window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
+
+        $('#btn_edit_initial_tape').click ( showInitialTapeEditDialog );
+
+        $('#btn_edit_alphabet').click ( showEditAlphabetDialog );
+
+        $('#btn_new_machine').click ( initNewMachine );
+
+        $('#btn_show_hide_graph').click( function () {
+            var box = $('#graph_box');
+            if (box.is(':visible')) {
+                box.hide();
+            } else {
+                box.show();
+            }
+        });
+
+        if (isFileAPISupported()) {
+            $('#btn_download_program').click(function () {
+                console.log('her');
+                var source = sim.toJSON();
+                $('#source_code').val(source);
+
+                setTextFileDownloadLink('#source_download', source,
+                                        'MT-kod.txt', 'Kliknij, by pobrać',
+                                        'Zakończono');
+            });
+
+            $('#source_input_file').change(function () {
+                readTextFile('#source_input_file', function (fileContents) {
+                    console.log('Success: ' + fileContents);
+                    sim.initFromJSON(fileContents);
+                    $('#btn_upload_program').attr('disabled', true);
+                });
+            });
+
+        } else {
+            $('#source_io_panel').html('<p>Obsługa odczytu i zapisu kodu ' +
+                                       'źródłowego programu nie jest możliwa w ' +
+                                       'tej przeglądarce.</p>');
+        }
+
+        $('#start').click( createGraph );
+    }
+
+    initMachine();
+
+
+  })();
+</script>
+
+</body>
+</html>
+
