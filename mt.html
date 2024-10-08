@@ -1,449 +1,218 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-  "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE html>
 <html>
-<head>
-  <title>Turing Machine Simulator</title>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Prosty symulator Maszyny Turinga</title>
 
-  <link rel="stylesheet" type="text/css" href="media/css/jasmine.css">
-  <link rel="stylesheet" type="text/css" href="media/css/main.css">
-  <script type="text/javascript" src="media/js/jquery-1.8.2.min.js"></script>
-  <script type="text/javascript" src="media/js/jquery-ui-1.9.2.custom.min.js"></script>
-  <script type="text/javascript" src="media/js/viz.js"></script>
-  <script type="text/javascript" src="media/js/jquery.svg.js"></script>
+        <script src="media/js/observable.js"></script>
 
-  <link rel="stylesheet" href="media/css/jquery-ui-1.9.2.custom.css" />
+        <script src="media/js/jquery-1.11.3.min.js"
+                type="text/javascript" charset="utf-8"></script>
+        <script src="media/js/react/react.js"></script>
 
-  <script type="text/javascript" src="media/js/jsutils.js"></script>
-  <script type="text/javascript" src="media/js/simple-inheritance.js"></script>
-  <script type="text/javascript" src="media/js/sig.js"></script>
-  <script type="text/javascript" src="media/js/TuringMachine.js"></script>
-  <script type="text/javascript" src="media/js/TMTape.js"></script>
-  <script type="text/javascript" src="media/js/TMTapeViewModel.js"></script>
-  <script type="text/javascript" src="media/js/TMTapeTableView.js"></script>
-  <script type="text/javascript" src="media/js/Array2d.js"></script>
-  <script type="text/javascript" src="media/js/TMProgramTableViewModel.js"></script>
-  <script type="text/javascript" src="media/js/TMProgramTableView.js"></script>
-  <script type="text/javascript" src="media/js/TMSimulator.js"></script>
-  <script type="text/javascript" src="media/js/fileio-utils.js"></script>
-  <script type="text/javascript" src="media/js/TMGraph.js"></script>
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet"
+              href="media/css/bootstrap.min.css">
+        <link href="media/css/font-awesome.min.css"
+              rel="stylesheet">
+        <link rel="stylesheet"
+              href="media/css/spinner.css" type="text/css" media="screen" />
 
-    <style>
-        input.text { width:95%; padding: 0px;}
-        fieldset { padding:0; border: 0; margin: 0px; }
-        h1 { font-size: 1.2em; margin: .6em 0; }
-        .ui-dialog .ui-state-error { padding: .3em; }
-        .validateTips { border: 1px solid transparent; padding: 0.3em; }
-        .ui-widget { font-size: 83%; }
-    </style>
-</head>
+        <script src="media/js/bootstrap.min.js"></script>
+        <script src="media/js/react-bootstrap.min.js"></script>
+        <script src="media/js/arg-1.3.js" type="text/javascript" charset="utf-8"></script>
+        <script src="media/js/lz-string.js" type="text/javascript" charset="utf-8"></script>
+        <script src="media/js/viz.js" type="text/javascript" charset="utf-8"></script>
+        <script src="media/js/jquery.svg.js" type="text/javascript" charset="utf-8"></script>
+        <script src="media/js/mt.js" type="text/javascript" charset="utf-8"></script>
+        <script src="media/js/TMGraph.js" type="text/javascript" charset="utf-8"></script>
 
-<body>
-
-<h1>Symulator Maszyny Turinga</h1>
-
-<button id="btn_add_state" class="nice_button">Dodaj stan</button>
-<button id="btn_edit_initial_tape" class="nice_button">Edytuj dane wejściowe</button>
-<button id="btn_edit_alphabet" class="nice_button">Edytuj alfabet</button>
-<button id="btn_new_machine" class="nice_button">Nowa maszyna</button>
-
-<h3>Graf programu</h3>
-<div id="graph_box" style="display: none;">
-<div id="svg_wrapper"></div>
-<button id="start" class="nice_button">Rysuj graf</button>
-</div>
-<button id="btn_show_hide_graph">Pokaż/ukryj</button>
-
-<h3>Tabela stanów</h3>
-<div id="program_table_wrapper"></div>
-
-<div id="tape_wrapper"></div>
-
-<div style="clear: both;"></div>
-
-<button id="btn_next"class="nice_button">Kolejny krok</button>
-<button id="btn_reset"class="nice_button">Reset</button>
-
-<div style="clear: both;"></div>
-
-<div id="source_io_panel">
-<h3>Zachowanie programu dla MT</h3>
-<p>
-Ze względu na bezstanowy charakter aplikacji, po opuszczeniu strony utracony
-zostanie aktualny program dla Maszyny Turinga. Kod programu można jednak pobrać
-w postaci pliku tekstowego, który można później załadować.
-</p>
-<div>
-    <button id="btn_download_program">Pobierz kod programu</button>
-    <a id="source_download">Pobierz kod</a>
-</div>
-
-<h3>Import programu z pliku tekstowego</h3>
-<p>
-Uprzednio zapisany kod programu można załadować korzystając z poniższego
-formularza.
-</p>
-<div>
-    <label for="source_input_file">Wczytaj kod programu: </label><input type="file" id="source_input_file" name="source_input_file" />
-</div>
-
-    <div id="source_code_box" style="display: none;">
-        <form>
-        <textarea id="source_code" cols="80" rows="10"></textarea>
-        </form>
-    </div>
-</div>
-
-
-<div id="edit-transition-dialog" class="form-dialog" style="display: none;" title="Edytuj przejście">
-    <form>
-    <fieldset>
-        <label for="next_state">Następny stan</label>
-        <input type="text" name="next_state" id="next_state" class="text ui-widget-content ui-corner-all" />
-        <label for="new_symbol">Nowy symbol</label>
-        <input type="text" name="new_symbol" id="new_symbol" value="" class="text ui-widget-content ui-corner-all" />
-        <label for="head_move">Ruch głowicy</label>
-        <input type="text" name="head_move" id="head_move" value="" class="text ui-widget-content ui-corner-all" />
-    </fieldset>
-    </form>
-</div>
-
-<div id="edit-initial-tape-dialog" class="form-dialog" style="display: none;" title="Edytuj dane wej. na taśmie">
-    <form>
-    <fieldset>
-        <label for="initial_tape_input">Słowo wejściowe</label>
-        <input type="text" name="initial_tape_inpute" id="initial_tape_input" class="text ui-widget-content ui-corner-all" />
-    </fieldset>
-    </form>
-</div>
-
-<div id="edit-alphabet-dialog" class="form-dialog" style="display: none;" title="Edytuj alfabet">
-    <form>
-    <fieldset>
-        <label for="alphabet_input">Lista symboli</label>
-        <input type="text" name="alphabet_input" id="alphabet_input" class="text ui-widget-content ui-corner-all" />
-        <p style="font-size: 80%; font-style: italic;">Symbole oddziel znakiem spacji</p>
-    </fieldset>
-    </form>
-</div>
-
-<div id="add-state-dialog" class="form-dialog" style="display: none;" title="Dodaj stan">
-    <form>
-    <fieldset>
-        <label for="new_state_id">Identyfikator</label>
-        <input type="text" name="new_state_id" id="new_state_id" class="text ui-widget-content ui-corner-all" />
-
-        <label for="new_state_description">Dodatkowy opis</label>
-        <input type="text" name="state_id" id="new_state_description" class="text ui-widget-content ui-corner-all" />
-        <p style="font-size: 80%; font-style: italic;">Opis jest opcjonalny</p>
-    </fieldset>
-    </form>
-</div>
-
-
- 
-<script type="text/javascript">
-  (function() {
-
-      function createGraph() {
-          tm_graph = new TMGraph(tm, '#svg_wrapper');
-          tm_graph.create();
-          tm_graph.highlightState('q0');
-      }
-
-
-      $( "#edit-transition-dialog" ).dialog({
-              autoOpen: false,
-              width: 200,
-              modal: true,
-              resizable: false,
-              successCallback: null,
-            open: function (event, ui) {
-                $('#edit-transition-dialog').css('overflow', 'hidden');
-              },
-              buttons: {
-                  "OK": function() {
-                      var bValid = true;
-   
-                      if ( bValid ) {
-                          console.log('Dialog ok');
-                          var callback = $(this).data('ui-dialog').successCallback;
-                          if (callback) {
-                              callback( $('#next_state').val(), $('#new_symbol').val(), $('#head_move').val() );
-                          }
-                          $( this ).dialog( "close" );
-                      }
-                  },
-                  Cancel: function() {
-                      $( this ).dialog( "close" );
-                  }
-              },
-              close: function() {
-              }
-          });
-
-          $( "#edit-initial-tape-dialog" ).dialog({
-                  autoOpen: false,
-                  width: 250,
-                  modal: true,
-                  resizable: false,
-                  open: function (event, ui) {
-                      var input =
-                          $('#initial_tape_input').val(sim.getTapeInitialState());
-                    },
-                  buttons: {
-                      "OK": function() {
-                          var bValid = true;
-       
-                          var input = $('#initial_tape_input').val();
-                          var error_msg = null;
-
-                          for (var i = 0; i < input.length; ++i) {
-                              if ( ! tm.isValidSymbol(input[i]) ) {
-                                  bValid = false;
-                                  error_msg = 'Ciąg zawiera nieznany symbol: ' + input[i];
-                                  break ;
-                              }
-                          }
-                          if ( bValid ) {
-                              sim.initTape(input);
-                              $( this ).dialog( "close" );
-                          } else {
-                              alert(error_msg);
-                          }
-                      },
-                      Cancel: function() {
-                          $( this ).dialog( "close" );
-                      }
-                  },
-                  close: function() {
-                  }
-              });
-
-              $( "#edit-alphabet-dialog" ).dialog({
-                      autoOpen: false,
-                      width: 250,
-                      modal: true,
-                      resizable: false,
-                      open: function (event, ui) {
-                          $('#alphabet_input').val(tm.getAlphabet().slice(1).join(' '));
-                        },
-                      buttons: {
-                          "OK": function() {
-                              var bValid = true;
-           
-                              var input = $('#alphabet_input').val();
-                              var tokens = input.split(/\s+/g);
-                              var error_msg = null;
-
-                              for (var i = 0; i < tokens.length; ++i) {
-                                  var token = tokens[i];
-                                  if (token.length > 1) {
-                                      bValid = false;
-                                      error_msg = 'Nieprawidłowy symbol: ' + token;
-                                      break ;
-                                  }
-                              }
-                              if ( bValid ) {
-                                  tm.updateAlphabet(tokens);
-                                  $( this ).dialog( "close" );
-                              } else {
-                                  alert(error_msg);
-                              }
-                          },
-                          Cancel: function() {
-                              $( this ).dialog( "close" );
-                          }
-                      },
-                      close: function() {
-                      }
-                  });
-
-                  $( "#add-state-dialog" ).dialog({
-                          autoOpen: false,
-                          width: 250,
-                          modal: true,
-                          resizable: false,
-                          open: function (event, ui) {
-                              $('#new_state_id').val(tm.getNextStateId());
-                          },
-                          buttons: {
-                              "OK": function() {
-                                  var bValid = true;
-               
-                                  var state_id = $('#new_state_id').val();
-                                  state_id = state_id.trim();
-                                  var description = $('#new_state_description').val();
-                                  if (description.length > 20) {
-                                      description = description.substr(0, 20);
-                                  }
-                                  var error_msg = null;
-
-                                  if (state_id.length == 0) {
-                                      bValid = false;
-                                      error_msg = 'Nieprawidłowy identyfikator stanu: ' + state_id;
-                                  } else if (tm.getStateById(state_id) !== null) {
-                                      bValid = false;
-                                      error_msg = 'Stan o podanym identyfikatorze istnieje: ' + state_id;
-                                  }
-
-                                  if ( bValid ) {
-                                      tm.addState(state_id, description);
-                                      $( this ).dialog( "close" );
-                                  } else {
-                                      alert(error_msg);
-                                  }
-                              },
-                              Cancel: function() {
-                                  $( this ).dialog( "close" );
-                              }
-                          },
-                          close: function() {
-                          }
-                      });
-
-                      function initNewMachine() {
-                          tm.newMachine();
-                          sim.initTape('');
-                      }
-
-    window.showTransitionEditDialog = function (fields, callback) {
-        if (fields.length >= 1) {
-            $('#next_state').val(fields[0]);
-        }
-        if (fields.length >= 2) {
-            $('#new_symbol').val(fields[1]);
-        }
-        if (fields.length >= 3) {
-            $('#head_move').val(fields[2]);
+        <style type="text/css" media="screen">
+        .program-table {
+            border-collapse: collapse;
+            margin: 10px 0px 20px 0px;
         }
 
-        $('.ui-dialog .ui-dialog-content').css('overflow', 'none !important');
-        $( "#next_state" ).autocomplete( { source : tm.getStatesIds(), minLength: 0});
-        $( "#edit-transition-dialog" ).data('ui-dialog').successCallback = callback; 
-        $( "#edit-transition-dialog" ).dialog( "open" );
-    }
-
-    function showInitialTapeEditDialog() {
-        $( "#edit-initial-tape-dialog" ).dialog( "open" );
-    }
-
-    function showEditAlphabetDialog() {
-        $( "#edit-alphabet-dialog" ).dialog( "open" );
-    }
-
-    function showAddStateDialog() {
-        $( "#add-state-dialog" ).dialog( "open" );
-    }
-
-    var sim = null;
-    var tm = null;
-    var n = 30;
-    var tm_graph = null;
-
-    function initMachine() {
-        console.log('hello:)');
-
-        tm = new TuringMachine();
-        tm.addStates(['q0', 'q1']);
-        tm.addSymbols(['0', '1']);
-        tm.addTransitionFromString('q0 0 1 q0 P');
-        tm.addTransitionFromString('q0 1 0 q0 P');
-        tm.addTransitionFromString('q0 @ @ q1 P');
-        tm.addTransitionFromString('q1 @ @ q1 -');
-
-        sim = new TMSimulator(tm);
-        sim.addTransitionObservers( {
-            'onTransitionInit':  function () {
-            },
-            'onTransitionChange' : function(curr, next) {
-                if (tm_graph != null) {
-                    tm_graph.highlightState(next.from_.getId());
-                }
-            },
-            'onSymbolReadWrite' : function (trans, curr_symbol, next_symbol) {
-            }
-        });
-        sim.addObserver( {
-            'onHeadSymbolReadWrite' : function(curr_symbol, next_symbol, trans) {
-                if (tm_graph != null) {
-                    tm_graph.highlightTransition(trans, curr_symbol, next_symbol);
-                } 
-            },
-            'onHeadMove' : function () {}
-        });
-        
-        var view = new TMTapeTableView('#tape_wrapper');
-        var view_model = new TMTapeViewModel(sim, view);
-
-        view_model.setCellCount(n);
-
-        var program_table_view = new TMProgramTableView('#program_table_wrapper');
-        var program_table_model = new TMProgramTableViewModel(sim,
-        program_table_view);
-
-        sim.initTape('10100');
-
-        $('#btn_next').click(function () {
-            sim.makeStep();
-        });
-
-        $('#btn_reset').click(function () {
-            sim.initTape(sim.getTapeInitialState());
-        });
-
-        $('#btn_add_state').click(showAddStateDialog);
-
-        window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
-
-        $('#btn_edit_initial_tape').click ( showInitialTapeEditDialog );
-
-        $('#btn_edit_alphabet').click ( showEditAlphabetDialog );
-
-        $('#btn_new_machine').click ( initNewMachine );
-
-        $('#btn_show_hide_graph').click( function () {
-            var box = $('#graph_box');
-            if (box.is(':visible')) {
-                box.hide();
-            } else {
-                box.show();
-            }
-        });
-
-        if (isFileAPISupported()) {
-            $('#btn_download_program').click(function () {
-                console.log('her');
-                var source = sim.toJSON();
-                $('#source_code').val(source);
-
-                setTextFileDownloadLink('#source_download', source,
-                                        'MT-kod.txt', 'Kliknij, by pobrać',
-                                        'Zakończono');
-            });
-
-            $('#source_input_file').change(function () {
-                readTextFile('#source_input_file', function (fileContents) {
-                    console.log('Success: ' + fileContents);
-                    sim.initFromJSON(fileContents);
-                    $('#btn_upload_program').attr('disabled', true);
-                });
-            });
-
-        } else {
-            $('#source_io_panel').html('<p>Obsługa odczytu i zapisu kodu ' +
-                                       'źródłowego programu nie jest możliwa w ' +
-                                       'tej przeglądarce.</p>');
+        .program-table th {
+            background-color: #eee;
+            padding: 10px;
         }
 
-        $('#start').click( createGraph );
+        .program-table td {
+            border: 1px #aaa solid;
+            padding: 10px;
+        }
+
+        .tape td {
+            width: 15px;
+            height: 15px;
+            text-align: center;
+            vertical-align: bottom;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .state_cell {
+        }
+
+        .state_name {
+            display: inline-block;
+            float: left;
+            text-align: center;
+            width: 100%;
+        }
+
+        .state_label {
+            display: inline-block;
+            clear: left;
+            float: left;
+            font-weight: normal;
+            font-size: 10px;
+        }
+
+        .arrow-down {
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+
+            border-top: 10px solid #f00;
+        }
+
+        .highlight {
+            background-color: #AFA;
+        }
+        .dim {
+            color: #999;
+        }
+        .normal {
+            color: #000;
+        }
+        .button-panel .btn {
+            margin: 10px 10px 10px 0px;
+        }
+        </style>
+    </head>
+    <body>
+    <div class="container">
+        <div id="tm-wrapper"></div>
+
+        <div id="tm-graph"></div>
+
+        <h3>Przykładowe MT</h3>
+        <ol>
+            <li>
+            <p>
+                <a href="./mt.html#?tm=N4IgzgLghhCmYgFwG0QEcAMIA06CMO6ATIWgMykAspArKQGykDspAHKQJwgC6ukMsAPoAbKACNYwhIlCYkIWBACeAawCWiqKQKIQpErqhGtucvKrnTdXQ3kYABMICuY%2BwD4splro-2AJgD2AA5qYABe9gDUbPKKqhrQnLHK6praWDYAvnxKALZiAVJIqADEhJ4gBLgAtITRuAC8PLhQAMYQagEAdtLIoPxw8nI5%2BYXyZbhdsADugmB5BcLytZOwAB4Qc9CDuisguQEAbrDLINn92ye6w%2BALY7oVU7Pzo0u7hFMbWwKnuAfHp3O4EuQwqL0W8iqICeczubxAe0%2BmwGVwRhH%2BqNqQJRoMI4PuIAAdB8ZrDXr9oetkSD3n8jpiztgLj9rmC4fJcKtnuzaZSvjjeRjAUzgSz8HieSAJpTueTeUjvjs0XSAe9sTTxSMIQ8SbLtcq%2BdSxXshWqRQLNbc5ZVdWT9dKFRa0CQVaiADKM5lKtBQ-Hw4lcu0EgOGxWon3o%2BnyAAKntF3t9ks5MqD8OTjo1EddMbjTpdVvttr9FIzxsjqrR6rFzol1sepOL8qpYYppsr5sz%2BcbNsD3ahpe9%2BbbHqrg9r%2BpDMO7iObFpNUbNXvDXaTRclM-5GvnFaxHerbOtTV7kods8zUOHuczB-1M71BI3RqV24Zo-DN4J9RT05Jm7L2cXeNw0Ta071TcZfyfcNGAAkARz3BNx0-NdQMgltBQXdslyGED9SPb91zQudy1fBDlyQ%2BEwJ-VY-29ChYPg7DrhXa0vynQiaKg1tMN3JjiAo%2BR8PY1DOPQg0214oChnogsCVPe94VPWjw2oWDYzfaSBJ1Y8RNDYjYMkp0ZL7FD9X7M9qxky8NOuYyOII3SBwZAyr0srSQDYht7Kc7id1cuj3KErzHIs58SOFPi0FU2TFNMh8iK3cLAKdaLu3rBSS1C5z9h4-yVPc8yMt0JSuOuOg1LyoZUu84LbwS6t2Aqmz0Gq1i4so%2Bqwpc5qosC9rMuU3zSMi8qYognTC1Ep0L0wxipLK9z0vAptBowvyetGkyJoJczVvQUa23Usihk2mqioNHyFqa46rrG3RPPOx8xJfCL5v2vrto6qbEu6m70Bgu6pX67S9MzLhrsigG0uBi6sqG16nShyVCuWntQerFgGMq64kZCx7OuyiTsf%2B9yHtRp79Jy9a-rQXG8Jhimfqp4a3rQTHAfk1HPL2tBweZhHM3Z6HPoG0rxNynqheRmHdrFtmkrg4n5a1eKRZWsWXuSwXSYZgn4a1jGPocurvv-fmDe9RqOZlvXrj5omeqt4XjdV9GuvNrDWad6W1bRy70Ctw6le9vHydt8XqcikP9TJ6i3cJiWaejgkgvx033Ydmm%2Be7Tm4-9zXPadbPJSWvO4bWlmi4K3X04TyPWeL0Oy72gvDLBnXfcZs3M8ixv6c78PW6VvAP1igfa-1wvz1Huwa-jye2%2BrEfq-H%2BeK4FpeZ6bNO14jyvp47l2vt3oeeuXlX4VTsOJ-XtVeBAaAgiuPoQDULo-HWJAMAvyE4zfj%2B1hIDwD-XQBAgT-0-ogIgICbTgPfpAsgMCwEiggYAxAlAYGSVQUgGgSC-7wLQfQPBcCAFICYDApomR74AAtYBQD8GQ3ArQnAACcWGwC6HLCoj8hBvyCE4CAxQ0ZQhEYQPYojGjNFDG0Do3QkCRS3iAK%2BOdw5Zg9vBaEThchhmkJUCotD6HfBYRAMAggABmLCAjaJYWoAA5tQwRiAIAsKcLATIQA"
+                    title="Odejmowanie 'patyczkowe'">Odejmowanie patyczkowe</a>
+                <br>
+                MT, która dokonuje odejmowania symboli zgodnie ze schematem:
+                <table style="border-collapse:collapse;border-spacing:0"><tr><th style="font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;text-align:center;vertical-align:top">Wejście</th><th style="font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;vertical-align:top">Wyjście</th></tr><tr><td style="font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;vertical-align:top">11-11=</td><td style="font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;vertical-align:top">0</td></tr><tr><td style="font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;vertical-align:top">1111-11=</td><td style="font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;vertical-align:top">+11</td></tr><tr><td style="font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;vertical-align:top">11-11111=</td><td style="font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;vertical-align:top">-111</td></tr></table>
+            </p>
+            </li>
+
+            <li>
+                <p>
+                <a
+                   href="./mt.html#?tm=N4IgzgLghhCmYgFwG0QEcAMIA06CMO6ATIWgMykAspArKQGykDsIAurpDLAPoA2UAI1i8EiUJiQgAtKQKIQAOygACANYB7BQEtYAY2UAKKAEpSJeSoBey3rADusAFYB%2BUhXkAHdXYBOAZ4gqSSU1TR19AwFTXDQ6eQFla1sHFwZJADkASQBRZkkAFQBBAGkQAF8OAE8AWwF1ESRUAGJCKEIBNlwoXQgtTVFkUE44SQkq2vrJFtwFe24wGrreKcJZgA8IeegR%2BTQWXGr1ADdYSQAFcuwh7dPdgnGllZm5hYnl%2BWnFWA2trlGSA7HW4gAAyl2uf12APAi0mH1WL1h7xAn3Wm2GwL2hEOJ0kMgqEJ26CwDzhIDazzs8yRTy%2BPwxo3uIBxwIuBPAN0ZhFejwsCKpPLJFLp6M5d2xQPO4I5kPw3Jp8X51Lekg6z3pYrlgNx8jZVxlRLQ0MFyLVXwFCpAZrRv0NjG1wPx%2BoZuxJMJVispyt5KIRGtlaGoDql7JdxHlHvJSpNtJtYfIEp1oOl8YopORqMRkcz-sNbpZIedmoT6ckwtmFsj5e%2BooDaeZkvkYNDxfrMc95u9ZOtNdtmPrBabKeLQfdPszlfHftrhrowaHLYDo-bUa9K%2Brucxo8HID1hK3EZ9Pcn3enfdG28bu%2BHAbnY7JE67GbP8f2DaTTv3ozv6%2Bjlo3M6Yva76Ojes6Hqea6WjmgGjAOV7NkWAbASuj4rjI6qwfIGEgXiYFARByLVieyI4XGmo4Tun4GgRpYdhWT54Zh57YYmoGLoab6oX%2BkZkb2YaUVe1GvoRZY8T6fGbkxuGsRxmJcZax6MaxzECWxeFlOwIDQB4tyDCAWgKAAJt8SAYHRUbsoZJlrEgeAWR0VnGaZiBEA50rWS5ZAWW0mm4AAFrAUBGWZuC6AArj4PiwAoWHEoQOk8IZHjhYEKCrla7StJ0IrcN0vSaEgX6uqJfJQdmL7FkyO56oo4XVH2oggAAHIQgXBb8PgQGA3AAGY%2BOoDU%2BFoADm-lpb1UAiLAZRAA"
+                   title="Palindrom">Palindrom</a>
+               <br>
+               MT, która sprawdza, czy słowo złożone z symboli {a, b} jest
+               palindromem.
+               Wynikiem jest zatrzymanie w jednym z dwóch stanów końcowych
+               stanowiących odpowiedź.
+               </p>
+            </li>
+
+            <li>
+                <p>
+                <a
+                    href="./mt.html#?tm=N4IgzgLghhCmYgFwG0QEcAMIA06CMO6ATIWgMykAspArKQGykDspAHKQJwgC6ukMsAPoAbKACNYwhIlCYkIAK5gFgEUAABAC81w2AHdYAK1IFEIADogoFxGoAOAewC2ASxWkSpi1aR2nr0hSmAMYaAJ6adgBOUPoGahZiFlTyACb2ts5gWl5JuGh0pg66kQDPEAzyRaXleSyeIIk%2BDi5ueez1jTbNrmrOamkZWZzyANb2AHbOsEEgAL58oY5i9lJIqADEhFCEYjy4UEEQzhPSyKD8cPJyC0sr8pu443qCYIvLwveETwAeEC-Ql1MaC4uEc9gAbrB5ABaObYc4AqFAgg3d6fR7PV63D6mB4gH5-C5I4iEMGQ%2BQABThCIEVxIqLuuK%2BmLejJAeIJ-1pQIooIhxIAMtTwIirlgGTjLMzdC9WZKObBflzAfhSfzKcKiVcUeA5fJdhiZVi0aYDfjFYTRci1eTTFT5jSVddddj9dLZa6mRilVqgSw%2BbaQPb4SLuaqJfJtoaPSapd7LWG0DqycTg47iWh6S7Y1HzUa9aZc5zfSSA6nNVbS9m2WanvnPQ1mT7K5mbeWHaGnbzq-L3ca2Qrm4nqGWNR2S%2BRCP3JUWWQ3Z0OnSOQCmxyGJ93p27o1uvebFxm6KPTELxy3l7v2X2C3H9wmnUeV%2BqTxXh1Ob7P67HYfHlcSf0%2Bgawmeb4Rqa14NgBxaVgBq6mMB64to%2Bl4Kl%2BA5NveGaMMeICnohibIR%2BEE5hhf5XI%2BcG4a%2BD7vg2tZzrG9EHuRbbyHh6ZXNhPbonmMbob%2BE7ioB7b4U6XGXp%2BfEzqRE5cZR7GdlhtGMcRNYyS2cnPlRIFOv63F7nWUk8dBibsDhaaKVcekSap0kCS2emURZE7WTe9FoZKTGYVZrF2tRGZmfpV47m56kEb52miQFylspJNn2aZEXOS2gWXu5RngQlTqBU5-lXCCQWoRlIBQRaZHwRFCEcUCBXxbxl6lcxFU4VVlk1TFnm2TCYUqrBWnAbwIDQLYSJnCAzjjCkipIBgYFSh2E1Td8SB4HNuwLZN02IEQa3CotW1kHN2wbUtSCUEde2bctiA0LtsyDQAFrAUApDNuBBAokSRLA4zeUCQnDUIE22Ao5QoLeZpmrmua7INnIHEcExINV6BCXVhkoT1GbJlpwb4gojh-tIIB4EJT0vVykQQGAggAGaRE4giRM4ADmD1g7TUBSLAsxAA"
+                    title="Usuwanie 'ba'">Usuwanie "ba"</a>
+                <br>
+                MT, która usuwa wystąpienia "ba" ze słowa złożonego z symboli {a, b}.
+                Słowo wejściowe jest przepisywane po prawej stronie. 
+                Symbol "a" jest dopisywany po prawej, jeżeli wcześniej nie ma
+                "b". Jeżeli jest "b" to jest ono usuwane, ponieważ razem z "a"
+                utworzyłoby ciąg "ba".
+                </p>
+                <p>
+                Przykład: "abbaab" =&gt; "ab"
+                </p>
+            </li>
+
+            <li>
+                <p>
+                <a
+
+                    href="./mt.html#?tm=N4IgzgLghhCmYgFwG0QEcAMIA06CMO6ATIWgMykAspArKQGykDspAHKQJwgC6ukMsAPoAbKACNYwhIlCYkIAK5gFgEUAABAGsA9sNgArAHYBPUgUQgoiNQGMtAMwMBLPaRLmAJloAOjsAC81KFIKc0s1AHcAJwBnwHBAKnkwqLi1RzUtdwhwgDpaeTErWwdnBnlPH381MWZ8q2T43DR2cwKImNjU9MycznltJ1hrEABfPiMAWzEdaVQAYkIg3GreC2sIRy0DGdB%2BOHk5McmdeXncA1hwwTAJqeETwnOADwgr6D3zNC5cca0AN1h5ABaEbYHZvAEfAiHW73M4XK43Y7mU4gJ4vXYQ4iEH7-eQAGRBYIE%2BxI0KRIBR50u1yOd1CD1gz1exI%2BFG%2Bf0xAAVCeBwfsoeBEXSLAzqULEgymRj%2BdiOfiedLIYQaTCWqKEbT8pL0XylezceYCaMie8sWThYtUfCVeTLWjmaa0KSQDjMUbQbyWWbBZq1XCxb6QNU4VLdd7XfLjZ7HVhzRL-RrVRTtQ7MWgBRHDQqwwcfUng1aA0nKYydV60HR9W7s%2BW2XnySWiw2U4r0NQq-JuVHW%2BRleL6QmbRaWzm65mQF2PT260OtYP%2B0GR7XZQaJzXHe368LG4nbUuYyuueu05vZwPC7vhyGyxvD53j-tTwuC1TL3OraHy5vx5OTWnK1usIXmeybXqm%2ByMB2WbdjmAEgXa1oLghn6OgB47un%2B%2Bxwc%2B6ogS%2BpbgR8aFytBU45pBgHIrhOFgT2LBQWuMHlhR8HUYGyE3mmFHoQ%2BHwsTRwECfaPbcSRIAYdGab0ZRoGCYGJYoWm7AMb%2Bkn7NJrHzux%2B5SXe5iqXRfaBvhTbCvhinqXpjFkeWykyTueE6fssYumJBk5nZmlyUmHGEegdk-rx-lGfmbGhbRHlWe55ZfPZYXksCEVeolrmrsCTGOrFXmviBKXCWGKXjulNmZSF5ImW%2B5h5QRraFWJ6UrNAXgQsgoCOAY7iMkgGBxvSUbtZ1jxIHgvWLv1HVdYgRCjUE42DUgZCjdUwwrAAFrAUDuN1uDWAokSRLABicc5hBNUI7VeAoEBIKgloFndPBgVAawbAYSCYR8LnZYh8lOXqqXVqMqIKOMqbSCAeAuetm3MpEEBgIIdiRFooORI4ADmq3XYgdhQFIsDDEAA"
+                    title="Odwracanie słowa">Odwracanie słowa</a>
+                <br>
+                MT, która odwraca słowo złożone z symboli {a, b}.
+                Odwrócone słowo tworzone jest po lewej stronie słowa
+                wejściowego.
+                </p>
+            </li>
+
+            <li>
+                <p>
+                <a
+                    href="./mt.html#?tm=N4IgzgLghhCmYgFwG0QEcAMIA06CMO6ATIWgMwgC6ukMsA%2BgDZQBGsjCiomS4ADgCcAdAAIAXgDsoAa1IFEICbADmUAMYArKKRIKA9gBMIAdwDPAsSOl7AIoBrTx6YExAUhQXWJAS1hqQAXxoATwBbFj0OJFQAYkIsXAJcIUJcahB1CE89CU5kUFo4Xh4g0PDeGNwlY3owELDGXgBaQiUADwhq6AKFJtxgvQA3WEb-bDzOoYUi8FrShTjFWCqakvq55tg2jrpCil6BiZAmgLHtyfnlut4EhaWZ1ZBr1vb8g7RrvsHeAAURk670c53XhJCqLapA7rrTYvYZ7T6Q47gcaFQErXi4UG3NGQ0HQ5E4kAfA5HUZI074QgXWYgco3cHYmlQ5744iEIm8AAyvzJ-zelIhIHmlXplwUjw2zPJfLhBx%2BiJhk2uVPu4qxosFTK2vPe%2B2%2B3IVFOK6pBdOVwM1BulhN1CjlpMtSoFGNNTotLKt7Nt%2BvdJCN1NpwrNBKeWuJbJth29Ut90wZQrBQYebqlu2t8Mj8p9-IZqpF1PjeOj4fTXMzRb99xNgYFPQWhf%2Btc9GftWYr6PWaupzpDlpjTdLLZT2fVAYTNeTDeLYbLvNTifjnfutZ7LMbEZJf1ec4FucTy4lodhaeng9nw%2BpVbHDP39bDMuGM635-u3av6pvksn94RqWgfAmuQgJ4EgGBsSAYG2YrcsBoEtEgeCQSASSIjBYGIEQiEEChIFoWQiFYNhsFIAALJh0E4XBiAAKyIbghFoQAbPh5FEYgADsZH0ZRAAcnGkqhlEAJzMVx8EQbG6oEakAAWsBQAY4G4GoACuAgCLAEifq88x-gwwF8MpECREmiSENc8zXM6FlmbEtmpCG6SZBISCbiiz5XB2eYqhOrw6umdqKMpwShpwIDEYQsnyVsAgQGA9AAGYCHowUCJ4yjSUZiDxVAHCwH4QA"
+                    title="Odwracanie słowa">Zamiana z ZM na ZU2</a>
+                <br>
+                MT, która dokonuje zamiany liczby binarnej z ZM na ZU2.
+                </p>
+            </li>
+        </ol>
+
+        <h3>Objaśnienia</h3>
+        <p>
+        Powyżej zamieszczono prosty symulator Maszyny Turinga. Powinien działać
+        w przeglądarkach Google Chrome, Chromium oraz Firefox w aktualnych
+        wersjach.
+        </p>
+        <p>
+        Możliwa jest edycja zarówno programu, jak i danych dla MT oraz podgląd
+        jej działania. Program można zachować pobierając unikalny odnośnik za
+        pomocą przycisku "Pobierz link do maszyny".
+        </p>
+        <p>
+        W razie wykrycia błędów proszę o kontakt.
+        </p>
+
+
+    </div><!-- container -->
+
+<script src="./js/mtgui.js" type="text/javascript" charset="utf-8"></script>
+
+<script type="text/javascript" charset="utf-8">
+var tm_graph = null;
+
+UI.on(UI.TM_SHOW_GRAPH, function () {
+    if (tm_graph == null) {
+        tm_graph = new TMGraph($('#tm-graph'));
+        tm_graph.create();
+        tm_graph.highlightState(TMSim.get_current_state());
+        tm_graph.highlightTransition(TMSim.get_next_action());
     }
+});
 
-    initMachine();
 
+var tm_graph_update_timer = null;
 
-  })();
+UI.on(UI.TM_PROGRAM_CHANGED, function () {
+    if (tm_graph_update_timer != null) {
+        clearTimeout(tm_graph_update_timer);
+        tm_graph_update_timer = null;
+    }
+    tm_graph_update_timer = setTimeout(function () {
+        if (tm_graph != null) {
+            tm_graph.create();
+        }
+    }, 200);
+});
+
 </script>
-
-</body>
+    </body>
 </html>
-
