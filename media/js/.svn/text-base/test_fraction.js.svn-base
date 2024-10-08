@@ -1,0 +1,39 @@
+/**
+ * Author: Rafał Skinderowicz
+ */
+function test_toBinaryZM() {
+    var fractions = [ new Fraction(5, 7, 16), new Fraction(-11), new Fraction(0), new Fraction(0, 5, 16), new Fraction(0, -5, 16) ];
+    var expected = [ '0.101,0111', '1.1011', '0.0', '0.0,0101', '1.0,0101' ];
+
+    for (var i = 0; i < fractions.length; ++i) {
+        var f = fractions[i];
+        var exp = expected[i];
+
+        if (f.toBinaryZM() !== exp) {
+            console.log('Error: Fraction.toBinaryZM: ' + f.toBinaryZM() + ' but should be: ' + exp);
+        }
+    }
+    
+}
+
+function test_fromBinaryZM() {
+    var inputs = [ '0.101,0111', '1.101' ];
+    var expected = [ '5 7/16', '-5' ];
+
+    for (var i = 0; i < inputs.length; ++i) {
+        var f = inputs[i];
+        var exp = expected[i];
+
+        var frac = fromBinaryZM(f);
+
+        if (frac.toString() !== exp) {
+            console.log('Error: fromBinaryZM: ' + frac.toString() + ' but should be: ' + exp);
+        }
+    }
+    
+}
+
+function test_fraction_run_all_tests() {
+    test_toBinaryZM();
+    test_fromBinaryZM();
+}

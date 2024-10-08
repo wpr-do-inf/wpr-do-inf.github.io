@@ -1,0 +1,84 @@
+/**
+ * Author: Rafał Skinderowicz
+ */
+function Fraction(integer_part, numerator, denominator) {
+    this.integer_part_ = parseInt(integer_part);
+    if (numerator !== undefined && numerator !== 0) {
+        this.numerator_ = parseInt(numerator);
+        this.denominator_ = parseInt(denominator);
+        if (this.denominator_ == 1) {
+            this.integer_part_ += this.numerator_;
+            this.numerator_ = undefined;
+            this.denominator_ = undefined;
+        }
+    }
+}
+
+Fraction.prototype.getSign = function() {
+    if (this.integer_part_ < 0) {
+        return -1;
+    } else if (this.numerator_ !== undefined && this.numerator_ < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+Fraction.prototype.toBinaryZM = function() {
+    if ( !this.numerator_ ) {
+        /* Just integer part */
+        return intToBinary(this.integer_part_);
+    } else {
+        if ( !isPowerOf2(this.denominator_) ) {
+            throw 'Denominator has to be power of 2';
+        }
+        if ( this.numerator_ > this.denominator_ ) {
+            throw 'Numerator can not be greater than denominator';
+        }
+        var intpart = intToBinary(this.integer_part_);
+
+        var n = getIntLog2(this.denominator_);
+        var fracpart = extendBinary(intToBinary(this.numerator_), n);
+
+        if (!this.integer_part_) {
+            intpart = fracpart[0] + intpart.substring(1);
+        }
+
+        return intpart + ',' + fracpart.substring(2);
+    }
+}
+
+function fromBinaryZM (bits) {
+    if (typeof bits !== 'string') {
+        bits = bits.join('');
+    }
+    if ( bits.match( /[01]\.[01]+,?[01]*/g ) == null ) {
+        throw 'Invalid binary format : ' + bits;
+    }
+    var integer_part = undefined;
+    var numerator = undefined; 
+    var denominator = undefined;
+
+    if ( bits.indexOf(',') != -1 ) {
+        var parts = bits.split(',');
+        integer_part = binaryToInt(parts[0]);
+        numerator = binaryToInt(parts[1]);
+        if (integer_part == 0 && parts[0][0] == '1') {
+            /* Value is negative, negate the numerator */
+            numerator = -numerator;
+        }
+        denominator = (1 << parts[1].length);
+    } else {
+        integer_part = binaryToInt(bits);
+    }
+    return new Fraction(integer_part, numerator, denominator);
+}
+
+Fraction.prototype.toString = function () {
+    if (this.numerator_ !== undefined) {
+        if (this.integer_part_ != 0) {
+            return '' + this.integer_part_ + ' ' + this.numerator_ + '/' + this.denominator_;
+        }
+        return '' + this.numerator_ + '/' + this.denominator_;
+    }
+    return '' + this.integer_part_;
+}

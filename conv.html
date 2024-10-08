@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml"> 
+<head>
+
+<title>WDI - arytmetyka binarna</title>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="language" content="pl" />
+<meta name="robots" content="all" />
+
+<meta name="description" content="wdi"/> 
+<meta name="keywords" content="wdi"/> 
+
+<link rel="stylesheet" href="media/css/main.css" />
+
+<script type="text/javascript" src="media/js/jquery-1.8.2.min.js"></script>
+<script type="text/javascript" src="media/js/jquery.validate.js"></script>
+<script type="text/javascript" src="media/js/additional-methods.js"></script>
+
+<script type="text/javascript" src="media/js/utils.js"></script>
+<script type="text/javascript" src="media/js/map.js"></script>
+<script type="text/javascript" src="media/js/display.js"></script>
+<script type="text/javascript" src="media/js/board.js"></script>
+<script type="text/javascript" src="media/js/boardsmanager.js"></script>
+<script type="text/javascript" src="media/js/numutils.js"></script>
+<script type="text/javascript" src="media/js/test_numutils.js"></script>
+<script type="text/javascript" src="media/js/fraction.js"></script>
+<script type="text/javascript" src="media/js/test_fraction.js"></script>
+<script type="text/javascript" src="media/js/conv.js"></script>
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-35406412-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+</head>
+
+<body>
+
+<div id="page_container">
+    <h2>Konwersja liczb z systemu dziesiętnego</h2>
+    <div class="input_form_wrapper">
+        <p>
+        Wprowadź liczbę do konwersji. Jako separatora dziesiętnego użyj przecinka.
+        </p>
+        <form class="input_numbers_form" id="input_numbers_form_1" method="get" action="">
+            <fieldset>
+            <table cellpadding="0" cellspacing="0">
+                <tr>
+                    <td>A = <input type="text" id="input_number" name="input_number" value="35,125" size="10"/></td>
+                </tr>
+                <tr>
+                    <td>Konwersja na system o podstawie <input type="text" id="input_base" name="input_base" value="2" size="3"/></td>
+                </tr>
+            </table>
+            </fieldset>
+            <fieldset>
+                <label for="example_select">Gotowe przykłady: </label><select name="example_select" id="example_select"><option value="">---</option></select>
+            </fieldset>
+
+            <fieldset>
+            <input type="button" id="submit_numbers" name="submit_numbers" class="nice_button" value="Start"/>
+            <button id="prev_step" class="nice_button">Wstecz</button>
+            <button id="next_step" class="nice_button">Dalej</button>
+            <button id="all_steps" class="nice_button">Koniec</button>
+            </fieldset>
+        </form>
+    </div>
+
+    <div id="display0_wrapper"> </div>
+
+    <p>Powyższy kalkulator pokazuje prosty sposób konwersji liczby z systemu
+    dziesiętnego na system o innej podstawie. Proszę pamiętać, że w przypadku
+    podstawy systemu większej od 10 konieczne jest użycie dodatkowych symboli
+    dla cyfr, w tym przypadku są to kolejne litery alfabetu.
+    </p>
+
+</div>
+
+<script type="text/javascript">
+
+
+function run_tests() {
+    console.log('Running tests...');
+    test_numutils_run_all_tests();
+    test_fraction_run_all_tests();
+    console.log('All tests finished');
+}
+
+
+function calculate(exec_all) {
+    BoardsManager().reset();
+
+    var input_number = $('#input_number').val();
+    var input_base = $('#input_base').val();
+
+    convertFromDecimal('#display0_wrapper', input_number, input_base);
+
+    BoardsManager().nextStep();
+    if (exec_all) {
+        BoardsManager().execAll();
+    }
+}
+
+
+function init_examples() {
+    var examples = [
+        ['33,125', '2'],
+        ['33,125', '16'],
+        ['15,28', '5'],
+        ['19,3', '2'],
+        ['27,33', '2']
+        ];
+    var select = $('#example_select');
+    for (var i = 0; i < examples.length; ++i) {
+        var ex = examples[i];
+        select.append('<option value="' + (i+1) + '">' + ex[0] + ' na syst. o podst. ' + ex[1] + '</option>');
+    }
+    select.change( function () {
+        var chosen = $("select option:selected").first().val();
+        var idx = parseInt(chosen) ;
+        if (idx >= 1 && idx <= examples.length) {
+            var ex = examples[idx-1];
+            $('#input_number').val(ex[0]);
+            $('#input_base').val(ex[1]);
+            calculate(true);
+        }
+    });
+}
+
+$(document).ready(function() { 
+    run_tests();
+    /* Create singleton instance of BoardsManager */
+    BoardsManager();
+    
+    init_examples();
+
+    var kPositiveRange = [1, 10000];
+    var kFullRange = [-kPositiveRange[1], kPositiveRange[1]];
+
+    var validator = $('#input_numbers_form_1').validate( {
+        rules: {
+            input_number : {
+                required: true,
+                pattern: /^-?\d+,?\d+$/
+                /*range: kPositiveRange*/
+            },
+            input_base : {
+                required: true,
+                range: [2, 32]
+            }
+        },
+        debug: true
+    });
+
+    $('#submit_numbers').click(function () {
+        if ( validator.form() === true ) {
+            calculate();
+        } else {
+            alert('Podana liczba jest nieprawidłowa');
+        }
+    });
+
+    $('#next_step').click(function () { BoardsManager().nextStep(); });
+    $('#prev_step').click(function () { BoardsManager().prevStep(); });
+    $('#all_steps').click(function () { BoardsManager().execAll(); });
+});
+</script>
+</body>
+</html>

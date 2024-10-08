@@ -1,0 +1,398 @@
+/**
+ * Author: Rafał Skinderowicz
+ */
+
+var Booth = Booth || {};
+
+(function() {
+    'use strict';
+
+    function subtract_binary_fractions(A, B) {
+        A = A[0] + A.substring(2);
+        B = B[0] + B.substring(2);
+        A = A.split('');
+        B = B.split('');
+
+        var result = [];
+        if (A.length < B.length) {
+            A = A + repeatStr('0', B.length - A.length);
+        }
+        for (var i = A.length - 1; i >= B.length; --i) {
+            result.push(A[i]);
+        }
+        for (var i = B.length - 1; i >= 0; --i) {
+            var bitA = parseInt(A[i]);
+            var bitB = parseInt(B[i]);
+            if (bitA >= bitB) {
+                result.push( '' + (bitA - bitB) );
+            } else {
+                result.push( '' + (2 - bitB) );
+                for (var j = i - 1; j >= 0; --j) {
+                    if (A[j] == '0') {
+                        A[j] = '1';
+                    } else if (A[j] == '1') {
+                        A[j] = '0';
+                        break;
+                    }
+                }
+            }
+        }
+        result = result.reverse();
+        result = result[0] + '.' + result.join('').substring(1);
+        return result;
+    }
+
+    function add_binary_fractions(A, B) {
+        /* Get rid off integer part */
+        A = A[0] + A.substring(2);
+        B = B[0] + B.substring(2);
+
+        if (A.length < B.length) {
+            A = A + repeatStr('0', B.length - A.length);
+        }
+        A = A.split('');
+        B = B.split('');
+        var result = [];
+        for (var i = A.length - 1; i >= B.length; --i) {
+            result.push(A[i]);
+        }
+        var overflow = 0;
+        for (var i = B.length - 1; i >= 0; --i) {
+            var bitA = parseInt(A[i]);
+            var bitB = parseInt(B[i]);
+            var sum = bitA + bitB + overflow;
+            result.push( '' + (sum % 2) );
+            overflow = sum > 1 ? 1 : 0;
+        }
+        result = result.reverse();
+        result = result[0] + '.' + result.join('').substring(1);
+        return result;
+    }
+
+    function shift_right(binary_frac) {
+        if (binary_frac[0] == '1') {
+            return '1.1' + binary_frac.substring(2);
+        }
+        return '0.0' + binary_frac.substring(2);
+    }
+
+    function mult_booth1(display_wrapper, fracA, fracB) {
+        $(display_wrapper).html(''); /* Clear */
+
+        var board = appendNewBoard(display_wrapper);
+
+        var line = 0;
+        var A = fracA.toBinaryZM();
+        var B = fracB.toBinaryZM();
+        board.set(0, line++, 'Konwertujemy A i B do kodu znak moduł:', 'aleft small');
+        board.set(0, line++, 'A = (' + A + ')ZM', 'aleft');
+        board.set(0, line++, 'B = (' + B + ')ZM', 'aleft');
+        board.commit();
+        ++line;
+
+        var shifted_A = make_lower_than_one(A);
+        var shifted_B = make_lower_than_one(B);
+        if (shifted_A[1] > 0) {
+            board.set(0, line++, 'Przesuwamy A w prawo o ' + shifted_A[1] + ' miejsca, tak by otrzymać liczbę mniejszą od 1', 'small aleft');
+            A = shifted_A[0];
+            board.set(0, line++, 'A = (' + A + ')ZM', 'aleft');
+            board.commit();
+        }
+        if (shifted_B[1] > 0) {
+            board.set(0, line++, 'Przesuwamy B w prawo o ' + shifted_B[1] + ' miejsca, tak by otrzymać liczbę mniejszą od 1', 'small aleft');
+            B = shifted_B[0];
+            board.set(0, line++, 'B = (' + B + ')ZM', 'aleft');
+            board.commit();
+        }
+        var shift_size = shifted_A[1] + shifted_B[1];
+        ++line;
+
+        board.set(0, line++, 'Konwertujemy A i B do kodu ZU2', 'small aleft');
+        A = convertFromZMtoZU2( A.split('') ).join( '' );
+        B = convertFromZMtoZU2( B.split('') ).join( '' );
+
+        board.set(0, line++, 'A = (' + A + ')ZU2', 'aleft');
+        board.set(0, line++, 'B = (' + B + ')ZU2', 'aleft');
+        board.commit();
+        ++line;
+
+        /* Remove the insignificant bit from the integer part */
+        A = A.substring(0, 2) + A.substring(A.indexOf(',') + 1);
+        B = B.substring(0, 2) + B.substring(B.indexOf(',') + 1);
+        board.set(0, line++, 'Operacje wykonujemy tylko na bitach części ułamkowej oraz bicie znakowym', 'small aleft');
+
+        board.set(0, line++, 'A = (' + A + ')ZU2', 'aleft');
+        board.set(0, line++, 'B = (' + B + ')ZU2', 'aleft');
+        board.commit();
+        ++line;
+
+        board.set(0, line++, 'Do mnożnika (B) dopisujemy nieznaczące 0 z prawej strony', 'small aleft');
+        board.set(0, line++, 'B = (' + B + '(0))ZU2', 'aleft');
+        board.commit();
+        board.set(0, line++, 'Kolejne kroki mnożenia zależeć będą od kolejnych par bitów B (od prawej strony)', 'small aleft');
+        board.commit();
+        board.initDisplay();
+
+
+        var pairs = [];
+        var prev_bit = '0';
+        for (var i = B.length - 1; i >= 0; --i) {
+            if (isZeroOrOne(B[i])) {
+                var pair = B[i] + prev_bit;
+                pairs.push(pair);
+                prev_bit = B[i];
+            }
+        }
+
+        board = appendNewBoard(display_wrapper);
+        line = 0;
+
+        var first_line = line;
+        board.setSequence(0, first_line, 'B = ' + B + '0');
+        ++line;
+        ++line;
+
+        var margin_col = A.length + B.length + 1;
+        var result = '0.' + repeatStr('0', A.length - 2);
+        var q_counter = 0;
+        var get_q = function() { return 'q' + '<sub>' + q_counter + '</sub>' + '='; };
+        var show_increment_q = function () { board.set(-2, line, get_q(), 'aleft'); ++q_counter; };
+
+        show_increment_q();
+        board.setSequence(0, line++, result, 'aleft');
+        for (var i = 0; i < pairs.length; ++i) {
+            var pair = pairs[i];
+
+            var idx = B.length - i + 3;
+            if (i == pairs.length - 1) {
+                --idx;
+            }
+            board.highlight(idx, first_line);
+            if (i == pairs.length - 1) {
+                ++idx;
+            }
+            board.highlight(idx + 1, first_line);
+
+            if (pair == "10") {
+                board.set(margin_col, line, 'Para "10", więc odejmujemy A', 'aleft small');
+                board.setSequence(0, line, A, 'aleft');
+                board.set(-1, line, '-'); 
+                result = subtract_binary_fractions(result, A);
+                ++line;
+                board.setSequence(0, line, result, 'overline');
+                ++line;
+                board.commit();
+            } else if (pair == "01") {
+                board.set(margin_col, line, 'Para "01", więc dodajemy A', 'aleft small');
+                board.setSequence(0, line, A, 'aleft');
+                board.set(-1, line, '+'); 
+                result = add_binary_fractions(result, A);
+                ++line;
+                board.setSequence(0, line, result, 'overline');
+                ++line;
+                board.commit();
+            }
+            if (i < pairs.length - 1) {
+                result = shift_right(result);
+                board.set(-1, line-1, '&rarr;');
+                show_increment_q();
+                board.setSequence(0, line, result);
+                if (pair == "00" || pair == "11") {
+                    board.set(margin_col, line-1, 'Para "' + pair + '", tylko przesuwamy', 'aleft small');
+                } else {
+                    board.set(margin_col, line-1, 'Przesuwamy o 1 msc. w prawo', 'aleft small');
+                }
+                ++line;
+                board.commit();
+            } else {
+                board.set(margin_col, line-1, 'Dla ostatniej pary nie ma przesunięcia w prawo', 'aleft small');
+                board.commit();
+            }
+        }
+        board.set(result.length, line-1, ',,ZU2,,', 'small');
+        board.commit();
+        result = convertFromZU2toZM(result.split('')).join('');
+        board.setSequence(0, line, result);
+        board.set(result.length, line, ',,ZM,,', 'small');
+        board.commit();
+        board.initDisplay();
+
+        board = appendNewBoard(display_wrapper);
+
+        line = 0;
+        if (shift_size > 0) {
+            board.set(0, line, 'Wynik przesuwamy w lewo o tyle miejsc o ile przesunęliśmy łącznie A i B w prawo przed rozpoczęciem mnożenia', 'small');
+            ++line;
+            result = result.substring(0, 2 + shift_size) + ',' + result.substring(2 + shift_size);
+        } else {
+            result = result.substring(0, 2) + '0,' + result.substring(2);
+        }
+        ++line;
+        board.set(0, line, 'Wynik: ' + result + ',,ZM,,', 'aleft');
+        board.commit();
+        ++line;
+        board.set(0, line, 'Wynik dziesiętnie: ' + fromBinaryZM( result ), 'aleft');
+        board.commit();
+
+        board.initDisplay();
+    }
+
+    function mult_booth2(display_wrapper, fracA, fracB) {
+        $(display_wrapper).html(''); /* Clear */
+
+        var board = appendNewBoard(display_wrapper);
+
+        var line = 0;
+        var A = fracA.toBinaryZM();
+        var B = fracB.toBinaryZM();
+        board.set(0, line++, 'Konwertujemy A i B do kodu znak moduł:', 'aleft small');
+        board.set(0, line++, 'A = (' + A + ')ZM', 'aleft');
+        board.set(0, line++, 'B = (' + B + ')ZM', 'aleft');
+        board.commit();
+        ++line;
+
+        var shifted_A = make_lower_than_one(A);
+        if (shifted_A[1] > 0) {
+            board.set(0, line++, 'Przesuwamy A w prawo o ' + shifted_A[1] + ' miejsca, tak by otrzymać liczbę mniejszą od 1', 'small aleft');
+            A = shifted_A[0];
+            board.set(0, line++, 'A = (' + A + ')ZM', 'aleft');
+            board.commit();
+        }
+        var shifted_B = make_lower_than_one(B);
+        if (shifted_B[1] > 0) {
+            board.set(0, line++, 'Przesuwamy B w prawo o ' + shifted_B[1] + ' miejsca, tak by otrzymać liczbę mniejszą od 1', 'small aleft');
+            B = shifted_B[0];
+            board.set(0, line++, 'B = (' + B + ')ZM', 'aleft');
+            board.commit();
+        }
+        var shift_size = shifted_A[1] + shifted_B[1];
+        ++line;
+
+        board.set(0, line++, 'Konwertujemy A i B do kodu ZU2', 'small aleft');
+        A = convertFromZMtoZU2( A.split('') ).join( '' );
+        B = convertFromZMtoZU2( B.split('') ).join( '' );
+
+        board.set(0, line++, 'A = (' + A + ')ZU2', 'aleft');
+        board.set(0, line++, 'B = (' + B + ')ZU2', 'aleft');
+        board.commit();
+        ++line;
+
+        /* Remove the insignificant bit from the integer part */
+        A = A.substring(0, 2) + A.substring(A.indexOf(',') + 1);
+        B = B.substring(0, 2) + B.substring(B.indexOf(',') + 1);
+        board.set(0, line++, 'Operacje wykonujemy tylko na bitach części ułamkowej oraz bicie znakowym', 'small aleft');
+
+        board.set(0, line++, 'A = (' + A + ')ZU2', 'aleft');
+        board.set(0, line++, 'B = (' + B + ')ZU2', 'aleft');
+        board.commit();
+        ++line;
+
+        board.set(0, line++, 'Będziemy dodawać i odejmować A/2, czyli A przesunięte o 1 msc. w prawo', 'small aleft');
+        var A_half = shift_right(A);
+        board.set(0, line++, 'A/2 = (' + A_half + ')ZU2', 'aleft');
+        board.commit();
+
+        ++line;
+        board.set(0, line++, 'Kolejne kroki mnożenia zależeć będą od kolejnych bitów B (od prawej strony)', 'small aleft');
+        board.commit();
+        board.initDisplay();
+
+        board = appendNewBoard(display_wrapper);
+        line = 0;
+
+        var first_line = line;
+        board.setSequence(0, first_line, 'B = ' + B);
+        ++line;
+        ++line;
+
+        var q_counter = 0;
+        var get_q = function() { return 'q' + '<sub>' + q_counter + '</sub>' + '='; };
+        var show_increment_q = function () { board.set(-2, line, get_q(), 'aleft'); ++q_counter; };
+
+        var margin_col = A.length + B.length + 2;
+        var result = '0.' + repeatStr('0', A.length - 2);
+        show_increment_q();
+        board.setSequence(0, line++, result, 'aleft');
+        for (var i = 0; i < B.length; ++i) {
+            var bit = B[B.length - i - 1];
+            if (bit == '.') {
+                continue ;
+            }
+
+            var idx = B.length - i + 3;
+            board.highlight(idx, first_line);
+            var is_last_bit = (i == B.length - 1);
+
+            if (bit == "1") {
+                if (is_last_bit) {
+                    board.set(margin_col, line, 'Bit znakowy B="1", więc odejmujemy A/2', 'aleft small');
+                    board.setSequence(0, line, A_half, 'aleft');
+                    board.set(-1, line, '-'); 
+                    result = subtract_binary_fractions(result, A_half);
+                } else {
+                    board.set(margin_col, line, 'Kolejny bit B="1", więc dodajemy A/2', 'aleft small');
+                    board.setSequence(0, line, A_half, 'aleft');
+                    board.set(-1, line, '+'); 
+                    result = add_binary_fractions(result, A_half);
+                }
+                ++line;
+                board.setSequence(0, line, result, 'overline');
+                ++line;
+                board.commit();
+            }
+            if (!is_last_bit) {
+                result = shift_right(result);
+                board.set(-1, line-1, '&rarr;');
+                board.setSequence(0, line, result);
+                show_increment_q();
+                if (bit == "0") {
+                    board.set(margin_col, line-1, 'Bit "' + bit + '", tylko przesuwamy', 'aleft small');
+                } else {
+                    board.set(margin_col, line-1, 'Wynik przesuwamy o 1 msc. w prawo', 'aleft small');
+                }
+                ++line;
+                board.commit();
+            } else {
+                board.set(margin_col, line-1, 'Dla ostatniego bitu (znakowego) nie ma przesunięcia w prawo', 'aleft small');
+                board.commit();
+            }
+        }
+        result = result.substring(0, 2) + result.substring(3);
+        board.set(-1, line, '&larr;');
+        board.set(margin_col, line, 'Po zakończeniu, wynik przesuwamy o 1 msc. w lewo', 'aleft small');
+        ++line;
+        board.setSequence(0, line, result);
+        ++line;
+
+        board.set(result.length, line-1, ',,ZU2,,', 'small');
+        board.commit();
+        result = convertFromZU2toZM(result.split('')).join('');
+        board.setSequence(0, line, result);
+        board.set(result.length, line, ',,ZM,,', 'small');
+        board.commit();
+        board.initDisplay();
+
+        board = appendNewBoard(display_wrapper);
+
+        line = 0;
+        if (shift_size > 0) {
+            board.set(0, line, 'Wynik przesuwamy w lewo o tyle miejsc o ile przesunęliśmy łącznie A i B w prawo przed rozpoczęciem mnożenia', 'small');
+            ++line;
+            result = result.substring(0, 2 + shift_size) + ',' + result.substring(2 + shift_size);
+        } else {
+            result = result.substring(0, 2) + '0,' + result.substring(2);
+        }
+        ++line;
+        board.set(0, line, 'Wynik: ' + result + ',,ZM,,', 'aleft');
+        board.commit();
+        ++line;
+        board.set(0, line, 'Wynik dziesiętnie: ' + fromBinaryZM( result ), 'aleft');
+        board.commit();
+
+        board.initDisplay();
+    }
+
+    Booth.mult_booth1 = mult_booth1;
+    Booth.mult_booth2 = mult_booth2;
+
+})();

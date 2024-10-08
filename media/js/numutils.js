@@ -1,0 +1,301 @@
+/**
+ * Author: Rafał Skinderowicz
+ */
+function isNumber(str) {
+    return str !== null && str !== undefined && str.toString().match(/[\-\+]?[0-9]+/g) != null;
+}
+
+function isZeroOrOne(letter) { 
+    return letter === '0' || letter === '1';
+}
+
+function intToBinary(val) {
+    val = parseInt(val);
+    var sign = val < 0 ? 1 : 0;
+
+    if (sign == 1) {
+        val = -val;
+    }
+    var bits = [];
+    if ( !(val > 0) ) {
+        bits.push('0');
+    }
+    while (val > 0) {
+        var bit = (val % 2 == 1) ? '1' : '0'; 
+        bits.push(bit);
+        val = Math.floor(val/2);
+    }
+    bits.push('.');
+    bits.push( sign == 1 ? '1' : '0' );
+    return bits.reverse().join('');
+}
+
+function binaryToInt(bits) {
+    var sign = 1;
+    if (bits.length >= 2 && bits[1] == '.') {
+        sign = (bits[0] == '0') ? 1 : -1;
+        bits = bits.substring(2);
+    }
+    var val = 0;
+    for (var i = 0; i < bits.length; ++i) {
+        val = val * 2;
+        if (bits[i] == '1') {
+            val += 1;
+        }
+    }
+    return sign * val;
+}
+
+function getIntLog2(val) {
+    val = parseInt(val);
+    return Math.ceil( Math.log(val) / Math.LN2 );
+}
+
+function getNearestPowerOf2(val) {
+    val = parseInt(val);
+    var n = Math.ceil( Math.log(val) / Math.LN2 );
+    return 1 << n;
+}
+
+function isPowerOf2(val) {
+    val = parseInt(val);
+    return val === getNearestPowerOf2(val);
+}
+
+
+function extendBinary(binary_str, places, decimal_places, left_fill, right_fill) {
+    var res = binary_str;
+    if (left_fill === undefined) {
+        left_fill = '0';
+    }
+    if (right_fill === undefined) {
+        right_fill = '0';
+    }
+    if (binary_str.indexOf(',') !== -1) {
+        var n = Math.max(0, places - (binary_str.indexOf(',') - 2));
+        res = binary_str.substr(0, 2) + repeatStr(left_fill, n) + binary_str.substring(2);
+        if (decimal_places !== undefined) {
+            n = Math.max( 0, decimal_places - (res.length - res.indexOf(',')) );
+            res = res + repeatStr(right_fill, n);
+        }
+    } else {
+        var n = Math.max(0, places - (binary_str.length - 2));
+        res = binary_str.substr(0, 2) + repeatStr(left_fill, n) + binary_str.substring(2);
+    }
+    return res;
+}
+
+function extendBinary_ZU1(binary_str, places, decimal_places) {
+    if (binary_str[0] === '1') {
+        return extendBinary(binary_str, places, decimal_places, '1', '1');
+    }
+    return extendBinary(binary_str, places, decimal_places);
+}
+
+function extendBinary_ZU2(binary_str, places, decimal_places) {
+    if (binary_str[0] === '1') {
+        return extendBinary(binary_str, places, decimal_places, '1', '0');
+    }
+    return extendBinary(binary_str, places, decimal_places);
+}
+
+function getLeftFill_ZM(binary_rep) {
+    return '0';
+}
+
+function getLeftFill_ZU1(binary_rep) {
+    return  binary_rep[0] == '1' ? '1' : '0';
+}
+
+function getLeftFill_ZU2(binary_rep) {
+    return  binary_rep[0] == '1' ? '1' : '0';
+}
+
+function alignBinaryRep(A, B, extend_method, get_left_fill_method) {
+    if (A.indexOf(',') != -1 || B.indexOf(',') != -1) {
+        if (A.indexOf(',') == -1) {
+            A = A + ',';
+        }
+        if (B.indexOf(',') == -1) {
+            B = B + ',';
+        }
+        var places = Math.max(A.indexOf(','), B.indexOf(',')) - 1;
+        if (A.indexOf(',') == 3 && B.indexOf(',') == 3 && A[2] == B[2] 
+            && A[2] == get_left_fill_method(A) && B[2] == get_left_fill_method(B)) {
+            --places;
+        }
+        var dec_places = Math.max(A.length - A.indexOf(','), B.length - B.indexOf(','));
+
+        console.log('Places: ' + places + ' dec places: ' + dec_places);
+
+        A = extend_method(A, places, dec_places);
+        B = extend_method(B, places, dec_places);
+    } else {
+        var places = Math.max(A.length - (A.indexOf('.')+1), B.length - (B.indexOf('.')+1)) + 1;
+        A = extend_method(A, places);
+        B = extend_method(B, places);
+    }
+    return [A, B];
+}
+
+function alignBinaryRep_ZM(A, B) {
+    return alignBinaryRep(A, B, extendBinary, getLeftFill_ZM);
+}
+
+function alignBinaryRep_ZU1(A, B) {
+    return alignBinaryRep(A, B, extendBinary_ZU1, getLeftFill_ZU1);
+}
+
+function alignBinaryRep_ZU2(A, B) {
+    return alignBinaryRep(A, B, extendBinary_ZU2, getLeftFill_ZU2);
+}
+
+function convertBinaryFromZMtoZU2 (bits) {
+    if (typeof bits === 'string') {
+        bits = bits.split('');
+    }
+    if (bits[0] === '0') {
+        return bits;
+    }
+    var i = bits.length-1;
+    while (i > 1 && bits[i] !== '1') {
+        --i;
+    }
+    for (--i ;i > 1; --i) {
+        if (bits[i] === '0') {
+            bits[i] = '1';
+        } else if (bits[i] === '1') {
+            bits[i] = '0';
+        }
+    }
+    return bits;
+}
+
+/**
+ * bits - array with number's bits including sign bit
+ */
+function convertFromZMtoZU1 (bits) {
+    if (bits[0] == '0') {
+        return bits; /* The number is positive, nothing to do */
+    }
+    for (var i = 2; i < bits.length; ++i) {
+        if (bits[i] == '1') {
+            bits[i] = '0';
+        } else if (bits[i] == '0') {
+            bits[i] = '1';
+        }
+    }
+    return bits;
+}
+
+/**
+ * bits - array with number's bits including sign bit
+ */
+function convertFromZU1toZM (bits) {
+    return convertFromZMtoZU1(bits);
+}
+
+/**
+ * bits - array with number's bits including sign bit
+ */
+function convertFromZMtoZU2 (bits) {
+    if (bits[0] == '0') {
+        return bits; /* The number is positive, nothing to do */
+    }
+    var found = false;
+    for (var i = bits.length-1; i > 1; --i) {
+        if (found) {
+            if (bits[i] == '1') {
+                bits[i] = '0';
+            } else if (bits[i] == '0') {
+                bits[i] = '1';
+            }
+        } else {
+            found = (bits[i] === '1');
+        }
+    }
+    return bits;
+}
+
+/**
+ * bits - array with number's bits including sign bit
+ */
+function convertFromZU2toZM (bits) {
+    return convertBinaryFromZMtoZU2(bits);
+}
+
+function incrementBinaryZM(bits) {
+    if (bits.length < 3 || bits[1] !== '.') {
+        throw 'Number has to have sign bit';
+    }
+    var result = bits.slice(0); /* Make a copy of bits */
+    var overflow = 1;
+    for (var i = bits.length; i > 1 && overflow === 1; --i) {
+        if (isZeroOrOne(bits[i])) {
+            var res = parseInt(bits[i]) + overflow;
+            result[i] = (res % 2 == 0) ? '0' : '1';
+            overflow = (res > 1) ? 1 : 0;
+        }
+    }
+    if (overflow === 1) {
+        /* Add extra 1 before the sign bit */
+        result = bits.slice(0, 2).concat( ['1'], result.slice(2) );
+    }
+    return result;
+}
+
+function incrementBinaryZU1(bits) {
+    bits = convertFromZU1toZM(bits);
+    var res = incrementBinaryZM(bits);
+    return convertFromZMtoZU1(res);
+}
+
+function decrementBinaryZM(bits) {
+    if (bits.length < 3 || bits[1] !== '.') {
+        throw 'Number has to have sign bit';
+    }
+    var result = bits.slice(0); /* Make a copy of bits */
+    var len = bits.length;
+    /* Find first '1' from the right */
+    var i = len-1;
+    while (i > 1 && bits[i] !== '1') {
+        --i;
+    }
+    if (i === 1) { /* Failed */
+        result[len-1] = '1';
+        result[0] = '1';
+    } else {
+        console.log('i = ' + i);
+        result[i] = '0';
+        while (++i < len) {
+            result[i] = '1';
+        }
+    }
+    return result;
+}
+
+/**
+ * Shifts given binary representation to get a number lower than one.
+ * @return an array tuple consisting of the shifted binary number and the shift
+ * size, 0 if the input number was lower than 1
+ */
+function make_lower_than_one(binary) {
+    var comma_pos = binary.indexOf(',');
+    if (comma_pos != -1) {
+        var leftmost_one_pos = comma_pos;
+        for (var i = comma_pos - 1; i >= 0 && isZeroOrOne(binary[i]); --i) {
+            if (binary[i] == '1') {
+                leftmost_one_pos = i;
+            }
+        }
+        var shift_size = comma_pos - leftmost_one_pos;
+        var shifted = binary;
+        if (shift_size > 0) {
+            var shifted = binary.substring(0, 2) + '0,' 
+            + binary.substring(leftmost_one_pos, comma_pos) 
+            + binary.substring(comma_pos + 1);
+        }
+        return [shifted, shift_size];
+    }
+    return [binary, 0];
+}

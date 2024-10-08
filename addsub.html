@@ -1,0 +1,253 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml"> 
+<head>
+
+<title>WDI - arytmetyka binarna</title>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="language" content="pl" />
+<meta name="robots" content="all" />
+
+<meta name="description" content="wdi"/> 
+<meta name="keywords" content="wdi"/> 
+
+<link rel="stylesheet" href="media/css/main.css" />
+
+<script type="text/javascript" src="media/js/jquery-1.8.2.min.js"></script>
+<script type="text/javascript" src="media/js/jquery.validate.js"></script>
+<script type="text/javascript" src="media/js/utils.js"></script>
+<script type="text/javascript" src="media/js/map.js"></script>
+<script type="text/javascript" src="media/js/display.js"></script>
+<script type="text/javascript" src="media/js/board.js"></script>
+<script type="text/javascript" src="media/js/boardsmanager.js"></script>
+<script type="text/javascript" src="media/js/numutils.js"></script>
+<script type="text/javascript" src="media/js/test_numutils.js"></script>
+<script type="text/javascript" src="media/js/fraction.js"></script>
+<script type="text/javascript" src="media/js/test_fraction.js"></script>
+<script type="text/javascript" src="media/js/addsub-zm.js"></script>
+<script type="text/javascript" src="media/js/addsub-zu1.js"></script>
+<script type="text/javascript" src="media/js/addsub-zu2.js"></script>
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-35406412-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+</head>
+
+<body>
+
+<div id="page_container">
+    <h2>Dodawanie i odejmowanie binarne</h2>
+    <div class="input_form_wrapper">
+        <p>
+        Wprowadź liczby. Mianownik ułamka musi być potęgą liczby 2. W celu dodania liczb całkowitych należy nie wpisywać nic w okienka na licznik i mianownik.
+        </p>
+        <form class="input_numbers_form" id="input_numbers_form_1" method="get" action="">
+            <fieldset>
+            <table cellpadding="0" cellspacing="0">
+                <tr>
+                    <td rowspan="2">A = <input type="text" id="integer_part_a" name="integer_part_a" value="5" size="3" class="integer_part"/></td>
+                    <td class="numerator"><input type="text" id="numerator_a" name="numerator_a" value="5" size="3"/></td>
+                </tr>
+                <tr>
+                    <td><input type="text" id="denominator_a" name="denominator_a" value="8" size="3"/></td>
+                </tr>
+            </table>
+            </fieldset>
+
+            <fieldset>
+            <table cellpadding="0" cellspacing="0">
+                <tr>
+                    <td rowspan="2">B = <input type="text" id="integer_part_b" name="integer_part_b" value="-11" size="3"/></td>
+                    <td class="numerator"><input type="text" id="numerator_b" name="numerator_b" value="3" size="3"/></td>
+                </tr>
+                <tr>
+                    <td><input type="text" id="denominator_b" name="denominator_b" value="4" size="3"/></td>
+                </tr>
+            </table>
+            </fieldset>
+
+            <fieldset>
+            <label for="operation">Operacja</label><select name="operation" id="operation">
+                <option value="+">+</option>
+                <option value="-">-</option>
+            </select>
+            </fieldset>
+
+            <fieldset>
+            <label for="code">Kod zapisu</label><select name="code" id="code">
+                <option value="ZM" selected="selected">ZM</option>
+                <option value="ZU1">ZU1</option>
+                <option value="ZU2">ZU2</option>
+            </select>
+            </fieldset>
+
+            <fieldset>
+                <label for="example_select">Gotowe przykłady: </label><select name="example_select" id="example_select"><option value="">---</option></select>
+            </fieldset>
+
+            <fieldset>
+            <input type="button" id="submit_numbers" name="submit_numbers" class="nice_button" value="Start"/>
+            <button id="next_step" class="nice_button">Dalej</button>
+            <button id="prev_step" class="nice_button">Wstecz</button>
+            <button id="all_steps" class="nice_button">Koniec</button>
+            </fieldset>
+        </form>
+    </div>
+
+    <div id="display0_wrapper"> </div>
+
+
+</div>
+
+<script type="text/javascript">
+
+function run_tests() {
+    console.log('Running tests...');
+    test_numutils_run_all_tests();
+    test_fraction_run_all_tests();
+    console.log('All tests finished');
+}
+
+function getOperation() {
+    return $('#operation').find(':selected').text();
+}
+
+function getCode() {
+    return $('#code').find(':selected').text();
+}
+
+function calculate() {
+    BoardsManager().reset();
+
+    var A = new Fraction( $('#integer_part_a').val(),
+                          $('#numerator_a').val(),
+                          $('#denominator_a').val());
+    var B = new Fraction( $('#integer_part_b').val(),
+                       $('#numerator_b').val(),
+                       $('#denominator_b').val());
+    var op = getOperation();
+    console.log('operation: ' + op);
+
+    var code = getCode();
+
+    if (code == 'ZM') {
+        addsub_ZM('#display0_wrapper', A, B, op);
+    } else if (code == 'ZU1') {
+        addsub_ZU1('#display0_wrapper', A, B, op);
+    } else if (code == 'ZU2') {
+        addsub_ZU2('#display0_wrapper', A, B, op);
+    }
+
+    BoardsManager().nextStep();
+}
+
+function init_examples() {
+    var examples = [
+        ['5', '5', '8', '-11', '3', '4', '+', 'ZM'],
+        ['-14', '1', '4', '-6', '1', '8', '+', 'ZM'],
+        ['5', '5', '8', '-11', '3', '4', '+', 'ZU1'],
+        ['-2', '1', '2', '5', '3', '8', '+', 'ZU1'],
+        ['5', '1', '4', '-8', '3', '8', '-', 'ZU1'],
+        ['-4', '5', '8', '6', '3', '8', '+', 'ZU2'],
+        ['', '1', '4', '', '-7', '8', '-', 'ZU2']
+        ];
+    var select = $('#example_select');
+    var inputs = ['integer_part_a', 'numerator_a', 'denominator_a', 'integer_part_b', 'numerator_b', 'denominator_b', 'operation', 'code'];
+
+    for (var i = 0; i < examples.length; ++i) {
+        var ex = examples[i];
+        var t = '(' + ex[0];
+        if (ex[1].length > 0) {
+            t += ' ' + ex[1] + '/' + ex[2];
+        }
+        t += ') ' + ex[6] + ' (';
+        t += ex[3];
+        if (ex[4].length > 0) {
+            t += ' ' + ex[4] + '/' + ex[5];
+        }
+        t += ') w ' + ex[7];
+        select.append('<option value="' + (i+1) + '">' + t + '</option>');
+    }
+    select.change( function () {
+        var chosen = $("#example_select option:selected").first().val();
+        console.log('here' + chosen);
+        var idx = parseInt(chosen) ;
+        if (idx >= 1 && idx <= examples.length) {
+            var ex = examples[idx-1];
+            for (var j = 0; j < inputs.length; ++j) {
+                $('#' + inputs[j]).val( ex[j] );
+            }
+            calculate();
+        }
+    });
+}
+
+$(document).ready(function() { 
+    run_tests();
+    /* Create singleton instance of BoardsManager */
+    BoardsManager();
+
+    init_examples();
+    var kPositiveRange = [1, 10000];
+    var kFullRange = [-kPositiveRange[1], kPositiveRange[1]];
+
+    var validator = $('#input_numbers_form_1').validate( {
+        rules: {
+            integer_part_a : {
+                required: function (el) { return !isNumber( $('#numerator_a').val() ); },
+                range: kFullRange
+            },
+            denominator_a : {
+                required: function (el) { return isNumber($("#numerator_a").val()); },
+                range: kPositiveRange
+            },
+            numerator_a : {
+                required: function (el) { return !isNumber( $('#integer_part_a').val() ); },
+                range: function(el) { 
+                    return isNumber( $('#integer_part_a').val() ) ? kPositiveRange : kFullRange; 
+                }
+            },
+            integer_part_b : {
+                required: function (el) { return !isNumber( $('#numerator_b').val() ); },
+                range: kFullRange
+            },
+            denominator_b : {
+                required: function (el) { return isNumber( $("#numerator_b").val() ); },
+                range: kPositiveRange
+            },
+            numerator_b : {
+                required: function (el) { return !isNumber( $('#integer_part_b').val() ); },
+                range: function(el) { 
+                    return isNumber( $('#integer_part_b').val() ) ? kPositiveRange : kFullRange; 
+                }
+            }
+        },
+        debug: true
+    });
+
+    $('#submit_numbers').click(function () {
+        if ( validator.form() === true ) {
+            calculate();
+        } else {
+            alert('Podane liczby są nieprawidłowe');
+        }
+    });
+
+    $('#next_step').click(function () { BoardsManager().nextStep(); });
+    $('#prev_step').click(function () { BoardsManager().prevStep(); });
+    $('#all_steps').click(function () { BoardsManager().execAll(); });
+});
+</script>
+</body>
+</html>

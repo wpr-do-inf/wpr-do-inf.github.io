@@ -1,0 +1,200 @@
+/**
+ * Author: Rafał Skinderowicz
+ */
+function convertFromDecimal(display_wrapper, input_number, dest_base) {
+    $(display_wrapper).html(''); /* Clear */
+    
+    var parts = input_number.split(',');
+
+    var result = convertIntegerPart(display_wrapper, parts[0], dest_base);
+
+    if (parts.length >= 2) {
+        var frac_part = convertFractionalPart(display_wrapper, parts[1], dest_base);
+        
+        result += ',' + frac_part.substring(2);
+    }
+
+    $(display_wrapper).append('<div class="display_wrapper"/>');
+    var board_wrapper = $(display_wrapper).find('div').last();
+    var board = new Board();
+    var minus = (parseInt(parts[0]) < 0) ? '-' : '';
+    BoardsManager().addBoard(board);
+    board.set(0, 0, 'Wynik: (' + input_number + '),,10,, = ' + '(' + minus + result + '),,' + dest_base + ',,');
+    board.commit();
+    board.initDisplay( board_wrapper );
+}
+
+function convertIntegerPart(display_wrapper, int_part, dest_base) {
+    dest_base = parseInt(dest_base);
+    if (dest_base < 2 || dest_base > 32) {
+        throw 'Nieprawidłowa podstawa systemu';
+    }
+    
+    $(display_wrapper).append('<div class="display_wrapper"/>');
+
+    var int_part_wrapper = $(display_wrapper).find('div').last();
+
+    var board = new Board();
+    BoardsManager().addBoard(board);
+    var line = 0;
+
+    var is_negative = false;
+    if (int_part < 0) {
+        is_negative = true;
+        int_part = -int_part;
+    }
+
+    board.set(0, line++, 'Część całkowita');
+    ++line;
+    board.set(0, line, 'Działanie', 'underline aleft');
+    board.set(1, line, 'Reszta', 'underline aleft');
+    ++line;
+
+    var val = int_part;
+    var digits = [];
+    var result = 0;
+    if (val > 0) {
+        var start = true;
+        while (val > 0) {
+            var reminder = val % dest_base;
+            var div = Math.floor(val/dest_base);
+            board.set(0, line, '' + val + ' : ' + dest_base + ' = ' + div);
+            board.set(1, line, '' + reminder, 'leftbar');
+            if (start) {
+                board.set(2, line, 'Proszę pamiętać, że ":" oznacza tu dzielenie całkowite', 'small');
+                start = false;
+            }
+            board.commit();
+            ++line;
+            digits.push(reminder);
+            val = div;
+        }
+        digits = $.map(digits,  function (val, idx) { return convertDecimalDigit(val, dest_base); });
+        result = digits.reverse().join('');
+    }
+
+    board.set(0, ++line, '(' + int_part + '),,10,, = (' + result + '),,' + dest_base + ',,' );
+
+    board.commit();
+    board.initDisplay( int_part_wrapper );
+    return result;
+}
+
+function convertFractionalPart(display_wrapper, frac_part, dest_base) {
+    $(display_wrapper).append('<div class="display_wrapper"/>');
+    var frac_part_wrapper = $(display_wrapper).find('div').last();
+
+    var board = new Board();
+    BoardsManager().addBoard(board);
+    var line = 0;
+
+    board.set(0, line++, 'Część ułamkowa');
+    ++line;
+    board.set(0, line, 'Działanie', 'underline aleft');
+    board.set(1, line, 'Część całkowita wyniku', 'underline aleft');
+    ++line;
+
+    var len = ('' + frac_part).length;
+    var val = (frac_part);
+    var mult_list = [];
+    var count = 0;
+    var start_line = line;
+    var digits = [];
+    while (new Number(val) > 0) {
+        var mul = Math.round(val * dest_base);
+        var mul_str = new String(mul);
+        var int_part = (mul_str.length > len) ? mul_str.substring(0, mul_str.length - len) : '0';
+        fraction = mul_str.substring(mul_str.length - len, mul_str.length);
+        // Uzupełnij 0 z lewej
+        for (var i = fraction.length; i < len; ++i) {
+            fraction = '0' + fraction;
+        }
+        var v = int_part + ',' + fraction;
+        // Uzupełnij 0 z lewej
+        for (var i = val.length; i < len; ++i) {
+            val = '0' + val;
+        }
+        board.set(0, line, '0,' + val + ' * ' + dest_base + ' = ' + v , 'aleft');
+        board.set(1, line, '' + int_part, 'leftbar aleft');
+        val = fraction;
+        mult_list.push(mul);
+        digits.push(int_part);
+        ++count;
+        if ( isZero(val) ) {
+            board.set(2, line, 'Część ułamkowa wyniku równa 0, koniec obliczeń.');
+        } else if (resultsRepeat(mult_list) >= 0) {
+            var idx = resultsRepeat(mult_list);
+            digits.pop();
+            var t = digits.slice(0, idx);
+            t = t.concat( ['('] );
+            t = t.concat( digits.slice(idx, digits.length), [')'] );
+            digits = t;
+            board.set(2, line, 'Wynik powtórzył się, rozwinięcie jest okresowe.');
+            board.highlight(0, start_line + idx);
+            break ;
+        } else if (count > 20) {
+            board.set(2, line, 'Osiągnięto limit rozwinięcia, wynik jest przybliżony.');
+            break ;
+        }
+        ++line;
+        board.commit();
+    }
+
+    digits = $.map(digits,  function (val, idx) { return convertDecimalDigit(val, dest_base); });
+    var result = '0,' + digits.join('');
+    ++line;
+    board.set(0, line, '(0,' + frac_part + '),,10,, = (' + result + '),,' + dest_base + ',,' );
+    if (dest_base > 10) {
+        board.set(2, line, 'Poszczególne cyfry zapisujemy w docelowym systemie, tj. o podstawie: ' + dest_base, 'small');
+    }
+
+    board.commit();
+    board.initDisplay( frac_part_wrapper );
+    return result;
+}
+
+function isZero(str) {
+    for (var i = 0; i < str.length; ++i) {
+        if (str[i] !== '0') {
+            return false;
+        }
+    }
+    return true;
+}
+
+function resultsRepeat(list) {
+    var len = list.length;
+    if (len < 2) {
+        return -1;
+    }
+    var last = list[len-1];
+    for (var i = len-2; i >= 0; --i) {
+        if (list[i] == last) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+function ord(str) {
+    return str.charCodeAt(0);
+}
+
+function chr(char_code) {
+    return String.fromCharCode(char_code)
+}
+
+function convertDecimalDigit(digit, dest_base) {
+    if (new String(digit).match(/^[0-9]+$/g) == null) {
+        return digit;
+    }
+    digit = parseInt(digit);
+    dest_base = parseInt(dest_base);
+    if (digit >= dest_base) {
+        throw 'Digit has to be lower than dest. base: ' + digit + ', dest_base: ' + dest_base;
+    }
+    if (digit < 10) {
+        return '' + digit;
+    }
+    return chr( ord('A') + (digit - 10) );
+}

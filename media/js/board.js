@@ -1,0 +1,300 @@
+/**
+ * Author: Rafał Skinderowicz
+ */
+
+/*******************************************************************************
+ * Point class
+ *******************************************************************************/
+
+function Point(x, y) {
+    this.x_ = x;
+    this.y_ = y;
+    this.__hash = "Point:" + x + "," + y;
+}
+
+Point.prototype.toString = function () {
+    return 'Point(' + this.x_ + ', ' + this.y_ + ')';
+}
+
+/*******************************************************************************
+ * Cell class
+ *******************************************************************************/
+
+function processMarkdown(str) {
+    if (str) {
+        str = '' + str;
+        str = str.replace(/\^([^\^]+?)\^/g, '<sup>\$1</sup>');
+        str = str.replace(/,,(.+?),,/g, '<sub>\$1</sub>');
+        str = str.replace(/ /g, '&nbsp;');
+    }
+    return str;
+}
+
+function Cell(text, css_classes) {
+    if (text) {
+        text = processMarkdown(text);
+    }
+    this.text_ = text;
+    this.css_classes_ = css_classes;
+}
+
+Cell.prototype.toString = function() {
+    return 'Cell (' + this.text_ + ', ' + (this.css_classes_ !== undefined ? this.css_classes_ : '') + ')';
+}
+
+Cell.prototype.addClass = function(class_name) {
+    if (this.css_classes_ === undefined) {
+        this.css_classes_ = class_name;
+    } else {
+        this.css_classes_ = this.css_classes_ + ' ' + class_name;
+    }
+}
+
+Cell.prototype.getText = function() {
+    return this.text_;
+}
+
+/*******************************************************************************
+ * Command class
+ *******************************************************************************/
+
+function Command(exec_cmd, undo_cmd) {
+    this.exec_cmd_ = exec_cmd;
+    this.undo_cmd_ = undo_cmd;
+    this.is_executed_ = false;
+}
+
+Command.prototype.exec = function () {
+    if (this.exec_cmd_ && this.is_executed_ === false) {
+        this.exec_cmd_();
+        this.is_executed_ = true;
+    }
+}
+
+Command.prototype.undo = function() {
+    if (this.undo_cmd_ && this.is_executed_ === true) {
+        this.undo_cmd_();
+        this.is_executed_ = false;
+    }
+}
+
+/*******************************************************************************
+ * Board class
+ *******************************************************************************/
+
+function Board() {
+    this.cells_ = new Map();
+    this.transactions_ = [];
+    this.currentTransaction_ = [];
+
+    // Boundaries of the board
+    this.minX_ = Number.MAX_VALUE;
+    this.minY_ = Number.MAX_VALUE;
+    this.maxX_ = Number.MIN_VALUE;
+    this.maxY_ = -100000;
+
+    this.display_ = null;
+    this.wrapper_element_ = null;
+}
+
+Board.prototype.getCurrentTransaction = function() {
+    return this.currentTransaction_;
+}
+
+Board.prototype.clearCurrentTransaction = function() {
+    this.currentTransaction_ = [];
+}
+
+Board.prototype.getTransactionsCount = function() {
+    return this.transactions_.length;
+}
+
+Board.prototype.setWrapperElement = function(el) {
+    return this.wrapper_element_ = el;
+}
+
+Board.prototype.commit = function() {
+    if (this.getCurrentTransaction() !== null) {
+        this.transactions_.push( this.getCurrentTransaction() );
+    }
+    this.currentTransaction_ = [];
+}
+
+Board.prototype.initDisplay = function(wrapper_element) {
+    if (wrapper_element != null && wrapper_element != undefined) {
+        this.wrapper_element_ = wrapper_element;
+    }
+    var bounds = this.getBounds();
+    console.log('Board.initDisplay: left: ' + bounds.left + ', top: ' + bounds.top + ', right: ' + bounds.right + ', bottom: ' + bounds.bottom + ', width: ' + bounds.width + ', height: ' + bounds.height);
+    var display = new Display(this.wrapper_element_, bounds.height+1, bounds.width+1);
+    display.init();
+    display.setOrigin( -bounds.top, -bounds.left );
+    this.display_ = display;
+}
+
+
+Board.prototype.getDisplay = function() {
+    return this.display_;
+}
+
+Board.prototype.set = function(x, y, text, css_classes) {
+    var coord = new Point(x, y);
+    var board = this;
+
+    this.updateBounds(x, y);
+
+    var SetCommand = function () {
+        var display = board.getDisplay();
+        if (text !== undefined) {
+            var cell = new Cell(text, css_classes);
+            board.cells_.put(coord, cell);     
+            display.setCellValue(y, x, cell.getText());             
+        } else {
+            board.cells_.remove(coord);
+            display.setCellValue(y, x, '');             
+        }
+        var css = css_classes + ' alert';
+        display.setCellCSSClasses(y, x, css);
+    }
+
+    var oldValue = board.cells_.get(coord);
+
+    var UnsetCommand = function () {
+        var display = board.getDisplay();
+        if (oldValue === undefined) {
+            board.cells_.remove(coord);
+            display.setCellValue(y, x, '');             
+            display.setCellCSSClasses(y, x, null);
+        } else {
+            board.cells_.put(coord, oldValue);
+            display.setCellValue(y, x, oldValue.text_);             
+            display.setCellCSSClasses(y, x, oldValue.css_classes_);
+        }
+    }
+
+    this.getCurrentTransaction().push( new Command(SetCommand, UnsetCommand) );
+}
+
+Board.prototype.highlight = function(x, y) {
+    var coord = new Point(x, y);
+    var board = this;
+    var prev_css_classes = undefined;
+
+    var SetCommand = function () {
+        var cell = board.cells_.get(coord);
+        if (cell !== undefined) {
+            var display = board.getDisplay();
+            prev_css_classes = cell.css_classes_;
+            cell.addClass('highlight');
+            display.setCellCSSClasses(y, x, cell.css_classes_);
+        }
+    }
+    var UnsetCommand = function () {
+        var cell = board.cells_.get(coord);
+        if (cell !== undefined) {
+            var display = board.getDisplay();
+            cell.css_classes_ = prev_css_classes;
+            display.setCellCSSClasses(y, x, prev_css_classes);
+        }
+    }
+    this.getCurrentTransaction().push( new Command(SetCommand, UnsetCommand) );
+}
+
+Board.prototype.setSequence = function(x, y, sequence, css_classes) {
+    var board = this;
+    $.each(sequence, function (index, value) {
+        board.set(x + index, y, value, css_classes);
+    });
+}
+
+Board.prototype.updateBounds = function(x, y) {
+    x = parseInt(x);
+    y = parseInt(y);
+    if (x > this.maxX_) {
+        this.maxX_ = x;
+    } 
+    if (x < this.minX_) {
+        this.minX_ = x;
+    }
+    if (y > this.maxY_) {
+        this.maxY_ = y;
+    } 
+    if (y < this.minY_) {
+        this.minY_ = y;
+    }
+}
+
+Board.prototype.getBounds = function() {
+    return {
+        'left' : this.minX_,
+        'top' : this.minY_,
+        'right' : this.maxX_,
+        'bottom' : this.maxY_,
+        'width' : this.maxX_ - this.minX_,
+        'height' : this.maxY_ - this.minY_
+    };
+}
+
+Board.prototype.printToConsole = function() {
+    var map = this.cells_;
+    console.log("Board:");
+    console.log("\tCells:");
+    for(var i = 0; i++ < map.size; map.next()) {
+        console.log(map.hash(map.key()) + ' : ' + map.value());
+    }
+    console.log("\tTransactions count: " + this.transactions_.length);
+}
+
+Board.prototype.getTransaction = function (index) {
+    index = parseInt(index, 10);
+    var n = this.getTransactionsCount();
+    if (index < 0 || index >= n) {
+        throw 'Transaction index out of bounds!';
+    } 
+    return this.transactions_[index];
+}
+
+Board.prototype.execTransaction = function (index) {
+    $('.alert').removeClass('alert');
+    $('.highlight').removeClass('highlight');
+    var actions = this.getTransaction(index);
+    for (var i = 0; i < actions.length; ++i) {
+        actions[i].exec();
+    }
+}
+
+Board.prototype.execTransactions = function(last_index) {
+    for (var i = 0; i <= last_index; ++i) {
+        this.execTransaction(i);
+    }
+}
+
+Board.prototype.execAllTransactions = function () {
+    this.execTransactions( this.getTransactionsCount() - 1 );
+}
+
+Board.prototype.undoTransaction = function (index) {
+    var actions = this.getTransaction(index);
+    for (var i = 0; i < actions.length; ++i) {
+        actions[i].undo();
+    }
+}
+
+Board.prototype.undoTransactions = function(first_index) {
+    for (var i = this.getTransactionsCount() - 1; i >= first_index; --i) {
+        this.undoTransaction(i);
+    }
+}
+
+Board.prototype.undoAllTransactions = function () {
+    this.execTransactionsUpTo( 0 );
+}
+
+function appendNewBoard(wrapper_element) {
+    $(wrapper_element).append('<div class="display_wrapper"/>');
+    var wrapper = $(wrapper_element).find('div').last();
+    var board = new Board();
+    BoardsManager().addBoard(board);
+    board.setWrapperElement(wrapper);
+    return board;
+}
